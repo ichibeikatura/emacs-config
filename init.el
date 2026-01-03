@@ -1,14 +1,10 @@
 ;; -*- lexical-binding: t; -*-
-;;; ========================================
 ;;; Native Compilation
-;;; ========================================
 (with-eval-after-load 'comp
   (setq native-comp-async-jobs-number 12
         native-comp-speed 2))
 (setq byte-compile-warnings '(not obsolete))
-;;; ========================================
 ;;; Elpaca ブートストラップ
-;;; ========================================
 (defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -51,9 +47,7 @@
   (elpaca-use-package-mode))
 ;(elpaca-wait)
 
-;;; ========================================
 ;;; Emacs 基本設定 & グローバルキーバインド
-;;; ========================================
 
 (use-package transient
   :ensure t
@@ -139,9 +133,7 @@
    ("C-]" . hippie-expand)
    ("C-\\" . dabbrev-expand))
 
-;;; ========================================
 ;;; load-path
-;;; ========================================
 ;; ~/.emacs.d/site-lisp 定義
 (defvar my-site-lisp-dir (locate-user-emacs-file "site-lisp"))
 
@@ -151,9 +143,7 @@
   (let ((default-directory my-site-lisp-dir))
     (normal-top-level-add-subdirs-to-load-path)))
 
-;;; ========================================
 ;;; macOS 固有設定
-;;; ========================================
 (when (eq system-type 'darwin)
   (setq mac-option-modifier 'super
         ns-command-modifier 'meta)
@@ -162,7 +152,6 @@
   (add-to-list 'exec-path "/usr/local/bin")
   (add-to-list 'exec-path "/opt/homebrew/bin"))
 
-;;; ========================================
 ;;; 表示・UI
 ;;; ========================================l
 (blink-cursor-mode -1)
@@ -176,18 +165,14 @@
       show-paren-delay 0)
 (show-paren-mode 1)
 
-;;; ========================================
 ;;; FFAP
-;;; ========================================
 
 ;(ffap-bindings)
 (global-set-key [remap find-file] 'find-file-at-point)
 (autoload 'find-file-at-point "ffap" nil t)
 
 ;; 
-;;; ========================================
 ;;; 配列 (Dvorak)
-;;; ========================================
 (setq skk-henkan-show-candidates-keys
       '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s ?-))
 
@@ -202,9 +187,7 @@
   (setq keyboard-translate-table nil))
 (dvorak)
 
-;;; ========================================
 ;;; 文字コード・濁点分離対策
-;;; ========================================
 ;(require 'ucs-normalize)
 (autoload 'ucs-normalize-NFC-region "ucs-normalize" nil t)
 (autoload 'ucs-normalize-NFC-string "ucs-normalize" nil t)
@@ -244,15 +227,11 @@
   :config
   (vim-tab-bar-mode 1))
 
-;;; ========================================
 ;;; Nerd Icons
-;;; ========================================
 (use-package nerd-icons
   :ensure t)
 
-;;; ========================================
 ;;; 補完エコシステム (Vertico, Consult, etc.)
-;;; ========================================
 
 (use-package vertico
   :ensure t
@@ -309,9 +288,7 @@
   :init
   (nerd-icons-completion-mode 1))
 
-;;; ========================================
 ;;; テーマ
-;;; ========================================
 (use-package doric-themes
   :ensure t
   :demand t
@@ -321,9 +298,7 @@
   :config
   (doric-themes-select 'doric-cherry))
 
-;;; ========================================
 ;;; Which Key
-;;; ========================================
 (use-package which-key
   :ensure t
   :custom
@@ -332,16 +307,12 @@
   :init
   (which-key-mode 1))
 
-;;; ========================================
 ;;; Midnight（古いバッファ自動削除）
-;;; ========================================
 (use-package midnight
   :init
   (midnight-mode 1))
 
-;;; ========================================
 ;;; ユーティリティ
-;;; ========================================
 (use-package uptimes
   :ensure t
   :config
@@ -354,9 +325,8 @@
   :bind ("C-c C-y" . kreplace)
   :init
   (defconst kreplace-kyujitai "亞惡壓圍醫爲壹飮隱鬱營榮衞驛圓艷鹽奧應歐毆穩櫻假價畫屆會壞懷繪擴覺學嶽樂殼勸卷歡罐觀關巖顏凾陷歸氣龜僞戲犧舊據擧峽挾狹曉區驅勳徑惠溪經繼莖螢輕鷄藝缺儉劍圈檢權獻縣險顯驗嚴效據廣恆鑛號國濟碎齋册劑雜參蠶棧慘讚贊殘齒兒辭濕實舍寫釋壽收龝從澁獸縱肅處敍奬將燒稱證乘剩壤孃條淨疊穰讓釀觸寢愼晉眞盡繩圖粹醉穗隨髓數樞聲靜齊竊攝專戰淺濳纖踐錢禪壯雙搜插爭總聰莊裝騷臟藏屬續墮體對帶滯臺擇澤單擔膽團彈斷遲癡晝蟲鑄廳聽鎭遞鐵轉點傳兔黨當盜燈稻鬪獨讀貳惱腦廢拜賣麥發髮拔蠻濱拂佛變竝篦邊辨餠舖寶豐冐沒萬滿默來亂彌藥譯豫餘與譽搖樣謠覽兩獵壘勵禮靈齡戀爐勞樓瀧祿蘆灣祕囑劵敕豎廚禰")
-  
+ 
   (defconst kreplace-shinjitai "亜悪圧囲医為壱飲隠欝営栄衛駅円艶塩奥応欧殴穏桜仮価画届会壊懐絵拡覚学岳楽殻勧巻歓缶観関巌顔函陥帰気亀偽戯犠旧拠挙峡挟狭暁区駆勲径恵渓経継茎蛍軽鶏芸欠倹剣圏検権献県険顕験厳効拠広恒鉱号国済砕斎冊剤雑参蚕桟惨讃賛残歯児辞湿実舎写釈寿収穐従渋獣縦粛処叙奨将焼称証乗剰壌嬢条浄畳穣譲醸触寝慎晋真尽縄図粋酔穂随髄数枢声静斉窃摂専戦浅潜繊践銭禅壮双捜挿争総聡荘装騒臓蔵属続堕体対帯滞台択沢単担胆団弾断遅痴昼虫鋳庁聴鎮逓鉄転点伝兎党当盗灯稲闘独読弐悩脳廃拝売麦発髪抜蛮浜払仏変並箆辺弁餅舗宝豊冒没万満黙来乱弥薬訳予余与誉揺様謡覧両猟塁励礼霊齢恋炉労楼滝禄芦湾秘嘱券勅竪厨祢")
-
   (defun kreplace ()
     "クリップボードの文字列から改行・空白を取り、旧字体を新字体に変換して挿入"
     (interactive)
@@ -431,18 +401,13 @@
         (apply orig file type data-p props))))
   (advice-add 'create-image :around #'my/create-image-with-width))
 
-;;; ========================================
 ;;; バッファ名の一意化
-;;; ========================================
 (use-package uniquify
   :custom
 (setq uniquify-buffer-name-style 'post-forward-angle-brackets
       uniquify-ignore-buffers-re "^\\*"))
 
-;;; ========================================
 ;;; Super Save（自動保存強化）
-;;; ========================================
-
 (use-package super-save
   :ensure t
   :custom
@@ -453,17 +418,12 @@
   (add-to-list 'super-save-triggers 'switch-window)
   (super-save-mode 1))
 
-;;; ========================================
 ;;; So Long（長い行のパフォーマンス対策）
-;;; ========================================
-
 (use-package so-long
   :init
   (global-so-long-mode 1))
 
-;;; ========================================
 ;;; 履歴・状態の永続化
-;;; ========================================
 (use-package savehist
   :custom
   (savehist-additional-variables '(kill-ring))
@@ -474,18 +434,14 @@
   :init
   (save-place-mode 1))
 
-;;; ========================================
 ;;; Auto Revert（外部変更の自動反映）
-;;; ========================================
 (use-package autorevert
   :custom
   (auto-revert-interval 1)
   :init
   (global-auto-revert-mode 1))
 
-;;; ========================================
 ;;; 検索ツール (Deadgrep)
-;;; ========================================
 (use-package deadgrep
   :ensure t
   :commands deadgrep
@@ -493,18 +449,13 @@
   :custom
   (deadgrep-extra-arguments '("--no-ignore-vcs")))
 
-;;; ========================================
 ;;; Disable Mouse
-;;; ========================================
 (use-package disable-mouse
   :ensure t
   :init
   (global-disable-mouse-mode 1))
 
-;;; ========================================
 ;;; Recentf
-;;; ========================================
-
 (use-package recentf
   :after no-littering
   :custom
@@ -521,9 +472,7 @@
   :ensure t
   :after recentf)
 
-;;; ========================================
 ;;; Lookup
-;;; ========================================
 (use-package lookup
   :defer t
   :commands (lookup lookup-region lookup-pattern lookup-word lookup-select-search-pattern)
@@ -552,14 +501,12 @@
      (ndebs "/usr/local/share/dict/jinmei/")))
   :config
   (setq lookup-open-function 'lookup-full-screen)
-  ;; ★重要: lookup 1.4+ 対策 (これがないと skk-lookup が動きません)
+  ;;  lookup 1.4+ から lookup-foreach が消えた対策
   (unless (fboundp 'lookup-foreach)
     (defalias 'lookup-foreach #'mapc)))
   
 
-;;; ========================================
 ;;; Prescient
-;;; ========================================
 (use-package prescient
   :ensure t
   :custom
@@ -575,9 +522,7 @@
   :init
   (vertico-prescient-mode 1))
 
-;;; ========================================
 ;;; Dirvish
-;;; ========================================
 (use-package dirvish
   :ensure t
   :init
@@ -614,9 +559,7 @@
 	("<backspace>" . dired-up-directory)))
 
 
-;;; ========================================
 ;;; BM（可視ブックマーク）
-;;; ========================================
 (use-package bm
   :ensure t
   :bind
@@ -639,9 +582,7 @@
   (kill-emacs . (lambda ()
                   (ignore-errors (bm-repository-save)))))
 
-;;; ========================================
 ;;; Magit & Forge
-;;; ========================================
 (use-package magit
   :ensure t
   :bind
@@ -669,9 +610,7 @@
   ("C-c C-f" . forge-create-issue)
   ("C-c f" . forge-topic-state-menu))
 
-;;; ========================================
 ;;; 日本語入力 & 変換 (DDSKK / Dabbrev)
-;;; ========================================
 (with-eval-after-load 'dabbrev
   (defvar dabbrev-abbrev-char-regexp)
   (defun my/dabbrev-japanese-regexp ()
@@ -711,10 +650,8 @@
         (cl-remove-if (lambda (x) (memq (car x) '(ndkks ndcookie ndnmz)))
                      lookup-search-agents))
 
-  ;; ---------------------------------------------------------
-  ;; 辞書設定 
-  ;; ---------------------------------------------------------
-  ;; マクロ定義: 設定記述を簡単にするためのローカル関数
+
+  ;; 辞書設定:マクロ定義: 設定記述を簡単にするためのローカル関数
   (let ((add-opt (lambda (dic-name regexp split)
                    (add-to-list 'skk-lookup-option-alist
                                 (list dic-name
@@ -815,9 +752,7 @@
   :config
   (ddskk-posframe-mode 1))
 
-;;; ========================================
 ;;; Doom Modeline
-;;; ========================================
 (use-package doom-modeline
   :ensure t
   :custom
@@ -854,12 +789,7 @@
   :bind ("C-M-'" . dmacro-exec))
 
 
-;;; ========================================
-;;; フォント設定 (Minimal)
-;;; ========================================
-;;; ========================================
-;;; フォント設定 (Minimal)
-;;; ========================================
+;;; フォント設定
 (defvar my-font-options '(("Mplus 1 code" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
 (defvar my-current-font-name "Mplus 1 code")
 (defvar my-current-font-size 14)
@@ -878,22 +808,17 @@
 (defun my/decrease-font-size () (interactive) (my-set-font my-current-font-name (max 8 (1- my-current-font-size))))
 
 (add-hook 'after-make-frame-functions (lambda (f) (my-set-font my-current-font-name my-current-font-size f)))
-;;; ========================================
-;;; 便利ツール & 自作関数
-;;; ========================================
 
-;; -----------------------------------------------------------
+;;; 便利ツール & 自作関数
+
 ;;  nhg-minor-mode (日本語執筆支援)
-;; -----------------------------------------------------------
 (use-package nhg-minor-mode
   :ensure (nhg-minor-mode
            :url "https://github.com/ichibeikatura/nhg-minor-mode")
   :hook ((text-mode markdown-mode) . nhg-minor-mode))
 
 
-;; -----------------------------------------------------------
 ;;  year-convert (西暦・和暦変換)
-;; -----------------------------------------------------------
 (use-package year-convert
   :ensure (year-convert
            :url "https://github.com/ichibeikatura/year-convert")
