@@ -1,0 +1,15 @@
+# キャッシュ・コンパイル済みファイル
+eln-cache/
+*.elc
+
+# パッケージ管理（再インストール可能）
+elpa/
+elpaca/
+
+# 状態・一時ファイル
+var/
+etc/
+.DS_Store
+
+# 個人用
+site-lisp/
