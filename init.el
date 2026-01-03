@@ -712,9 +712,8 @@
                      lookup-search-agents))
 
   ;; ---------------------------------------------------------
-  ;; 辞書設定 (修正版: 正規表現をペア形式 (REGEXP . GROUP) で指定)
+  ;; 辞書設定 
   ;; ---------------------------------------------------------
-  
   ;; マクロ定義: 設定記述を簡単にするためのローカル関数
   (let ((add-opt (lambda (dic-name regexp split)
                    (add-to-list 'skk-lookup-option-alist
@@ -744,15 +743,8 @@
     (funcall add-opt "nihonshi" '("^\\([^【]+\\)【" . 1) nil)
 
     ;; 6. そのまま抽出 (新選国語、百科事典)
-    ;; 正規表現に nil を渡すと見出しそのままになります
     (dolist (dic-name '("ssn" "ency" "chimei" "jinmei"))
-      (funcall add-opt dic-name nil nil)))
-
-  ;; ---------------------------------------------------------
-  ;; 検索プログラムリストへの登録
-  ;; ---------------------------------------------------------
-  ;; 重複登録を防ぎつつ、リストの先頭に追加
-  (add-to-list 'skk-search-prog-list '(skk-lookup-search)))
+      (funcall add-opt dic-name nil nil))))
 
 (use-package ddskk
   :ensure t
@@ -922,7 +914,7 @@
 (global-set-key (kbd "C-q") #'my/epub-convert)
 
 
-;; 昔の人は今日なにしていた
+;; 個人設定
 (defun my/insert-diary-entry ()
   "日記エントリを挿入する。"
   (interactive)
