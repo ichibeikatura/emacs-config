@@ -603,13 +603,6 @@
   :ensure t
   :hook (magit-mode . magit-delta-mode))
 
-(use-package forge
-  :ensure t
-  :after magit
-  :bind
-  ("C-c C-f" . forge-create-issue)
-  ("C-c f" . forge-topic-state-menu))
-
 ;;; 日本語入力 & 変換 (DDSKK / Dabbrev)
 (with-eval-after-load 'dabbrev
   (defvar dabbrev-abbrev-char-regexp)
