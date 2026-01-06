@@ -59,7 +59,9 @@ yaskkserv2 --google-japanese-input=last --google-suggest --google-cache-filename
 
 ### EPUB 変換用スクリプト
 
-[tategaki-epub-script](https://github.com/ichibeikatura/tategaki-epub-script) :縦書き EPUB 変換スクリプト。
+[tategaki-epub-script](https://github.com/ichibeikatura/tategaki-epub-script) :縦書き EPUB 変換スクリプト。この設定で使う場合は "chmod +x"。
+
+EPUBリーダで更新が反映されない場合はキャッシュを消して対処する。
 
 ## 主要キーバインド
 
