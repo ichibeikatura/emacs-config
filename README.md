@@ -19,6 +19,8 @@ Elpaca + use-package 構成の Emacs 設定。日本語執筆向け（SKK, Dvora
 - **DDSKK** + **yaskkserv2**による日本語入力
 - **skk-lookup** による EPWING 辞書連携（広辞苑、大辞林、日本史辞典など）[Lookup 1.4+media](http://ikazuhiro.s206.xrea.com/staticpages/index.php/lookup)対応済み。
 
+skk-lookup.el と skk-bayesian.el を使いたい場合は site-lisp に、 "bskk" はパスの通った場所("~/bin" 等)に入れておく。
+
 ### キーボード配列
 
 Dvorak 配列。`dvorak` / `qwerty` コマンドで切り替え可能。SKK の変換候補キーも Dvorak 配置（`a o e u i d h t n s -`）に対応。US 配列用。
@@ -51,6 +53,13 @@ brew install ripgrep fd coreutils pngpaste
 yaskkserv2 --google-japanese-input=last --google-suggest --google-cache-filename=/tmp/yaskkserv2.cache /tmp/dictionary.yaskkserv2
 ```
 
+### Bibi
+
+[Bibi](https://bibi.epub.link) :EPUB リーダ。
+
+### EPUB 変換用スクリプト
+
+[tategaki-epub-script](https://github.com/ichibeikatura/tategaki-epub-script) :縦書き EPUB 変換スクリプト。
 
 ## 主要キーバインド
 

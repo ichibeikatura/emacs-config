@@ -823,7 +823,7 @@
   ;; 保存していない変更があれば保存
   (when (buffer-modified-p)
     (save-buffer))
-  (let ((script-path (expand-file-name "~/Documents/etc/make_epub/convert_epub.py")));;スクリプトは各自AIに書いてもらってね
+  (let ((script-path (expand-file-name "~/Documents/github/convert_epub/convert_epub.py")))
     (message "Generating EPUB...")
     (shell-command-on-region 
      (point-min) (point-max) 
