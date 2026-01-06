@@ -171,37 +171,54 @@
 (global-set-key [remap find-file] 'find-file-at-point)
 (autoload 'find-file-at-point "ffap" nil t)
 
-;; 
+ 
 ;;; 配列 (Dvorak)
+
 (setq skk-henkan-show-candidates-keys
       '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s ?-))
 
+(defconst my-dvorak-translation-table
+  "\C-@\C-a\C-b\C-c\C-d\C-e\C-f\C-g\C-h\011\012\C-k\C-l\C-m\C-n\C-o\C-p\C-q\C-r\C-s\C-t\C-u\C-v\C-w\C-x\C-y\C-z\C-[\C-\\\C-]\C-^\C-_\040!_#$%&-()*+w\\vz0123456789SsW=VZ@AXJE>UIDCHTNMBRL\"POYGK<QF:[/]^|`axje.uidchtnmbrl'poygk,qf;{?}~\C-?"
+  "Pre-calculated Dvorak translation table.")
+
 (defun dvorak ()
-  "Dvorak keyboard table"
+  "Switch to Dvorak layout instantly."
   (interactive)
-  (setq keyboard-translate-table "\C-@\C-a\C-b\C-c\C-d\C-e\C-f\C-g\C-h\011\012\C-k\C-l\C-m\C-n\C-o\C-p\C-q\C-r\C-s\C-t\C-u\C-v\C-w\C-x\C-y\C-z\C-[\C-\\\C-]\C-^\C-_\040!_#$%&-()*+w\\vz0123456789SsW=VZ@AXJE>UIDCHTNMBRL\"POYGK<QF:[/]^|`axje.uidchtnmbrl'poygk,qf;{?}~\C-?"))
+  (setq keyboard-translate-table my-dvorak-translation-table)
+  (message "Input: Dvorak"))
 
 (defun qwerty ()
-  "Qwerty keyboard table"
+  "Switch to Qwerty layout instantly."
   (interactive)
-  (setq keyboard-translate-table nil))
+  (setq keyboard-translate-table nil)
+  (message "Input: Qwerty"))
+
 (dvorak)
 
 ;;; 文字コード・濁点分離対策
-;(require 'ucs-normalize)
-(autoload 'ucs-normalize-NFC-region "ucs-normalize" nil t)
-(autoload 'ucs-normalize-NFC-string "ucs-normalize" nil t)
 
 (defun my/normalize-nfc-buffer ()
-  "バッファ全体をNFC正規化する（濁点分離対策）。"
+  "バッファ全体をNFC正規化"
   (interactive)
   (let ((modified (buffer-modified-p))
-        (content (buffer-string)))
-    (let ((normalized (ucs-normalize-NFC-string content)))
-      (unless (string= content normalized)
-        (erase-buffer)
-        (insert normalized)
-        (set-buffer-modified-p modified)))))
+        (p (point)))
+    (ucs-normalize-NFC-region (point-min) (point-max))
+    (goto-char (min p (point-max)))
+    (set-buffer-modified-p modified)))
+
+;; 侵入経路1: ファイル読み込み時
+(add-hook 'find-file-hook #'my/normalize-nfc-buffer)
+
+;; 侵入経路2: 保存前（念のため）
+(add-hook 'before-save-hook #'my/normalize-nfc-buffer)
+
+;; 侵入経路3: クリップボード経由
+(defun my/normalize-nfc-yank (orig-fun &rest args)
+  (let ((result (apply orig-fun args)))
+    (ucs-normalize-NFC-region (region-beginning) (region-end))
+    result))
+
+(advice-add 'yank :around #'my/normalize-nfc-yank)
 
 (use-package no-littering
   :ensure t
