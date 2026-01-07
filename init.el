@@ -827,12 +827,21 @@
            :url "https://github.com/ichibeikatura/nhg-minor-mode")
   :hook ((text-mode markdown-mode) . nhg-minor-mode))
 
+(use-package proofreader
+  :ensure (proofreader
+           :url "https://github.com/ichibeikatura/proofreader.el")
+  :bind (("C-c p s" . proofreader-send-buffer)
+         ("C-c p i" . proofreader-apply-interactive)
+         ("C-c p r" . proofreader-send-region)
+         ("C-c p o" . proofreader-open-json)
+         ("C-c p a" . proofreader-apply)))
 
 ;;  year-convert (西暦・和暦変換)
 (use-package year-convert
   :ensure (year-convert
            :url "https://github.com/ichibeikatura/year-convert")
   :bind ("C-M-=" . year-convert-at-point))
+
 
 (defun my/epub-convert ()
   "現在のバッファ内容をPythonスクリプトに渡してEPUB化し、プレビューする。"
@@ -847,7 +856,6 @@
      script-path)
     (message "EPUB generation sent.")))
 (global-set-key (kbd "C-q") #'my/epub-convert)
-
 
 ;; 個人設定
 (defun my/insert-diary-entry ()
