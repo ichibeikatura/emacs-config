@@ -51,26 +51,30 @@
 
 (use-package transient
   :ensure t
-  :after no-littering  ; markdown-mode は外す
+  :after no-littering
   :bind
   ("C-c t" . my/outline-menu)
   :config
   (require 'outline)
   (setq transient-history-file (no-littering-expand-var-file-name "transient/history.el"))
+  (setq transient-align-variable-pitch t)  
   (transient-define-prefix my/outline-menu ()
     "Custom Menu"
-    [["表示と開閉"
-      ("b" "見出表示 (hide-body)"    outline-hide-body)
-      ("a" "全て表示 (show-all)"     outline-show-all)
-      ("e" "非表示 (hide-subl)"      (lambda () (interactive) (outline-hide-sublevels 1)))
-      ("o" "子ノード開閉トグル"      outline-toggle-children)
-      ("m" "プレビュー切り替え"      markdown-toggle-markup-hiding)]
-     ["範囲"
-      ("s" "ナロー (subtree)"        markdown-narrow-to-subtree)
-      ("w" "ワイド (全体)"           widen)]
+    ;; 余計なスペースを削除して詰めることで、Transientの自動整列を正常に機能させます
+    [["表示"
+      ("h" "見出表示"    outline-hide-body)
+      ("a" "全て表示"     outline-show-all)
+      ("m" "装飾切替"      markdown-toggle-markup-hiding)]
      ["タブ"
       ("d" "Close"                   tab-bar-close-tab)
-      ("n" "New"                     tab-bar-new-tab)]]))
+      ("n" "Newtab"                     tab-bar-new-tab)]
+     ["校正"
+      ("b" "バッファを校正"          proofreader-send-buffer)
+      ("r" "選択部分を校正"          proofreader-send-region)
+      ("i" "対話的に置き換え"        proofreader-apply-interactive)
+      ("A" "一括置き換え"            proofreader-apply)
+      ("o" "校正ファイルを開く"      proofreader-open-json)]
+     ]))
 
 (use-package emacs
   :custom
@@ -751,7 +755,6 @@
           (skk-search-kakutei-jisyo-file skk-kakutei-jisyo 10000 t)
           (skk-search-jisyo-file skk-initial-search-jisyo 10000 t)
           (skk-search-server skk-aux-large-jisyo 10000)
-          (skk-okuri-search)
 	  (skk-lookup-search)
           ))
   )
@@ -829,12 +832,7 @@
 
 (use-package proofreader
   :ensure (proofreader
-           :url "https://github.com/ichibeikatura/proofreader.el")
-  :bind (("C-c p s" . proofreader-send-buffer)
-         ("C-c p i" . proofreader-apply-interactive)
-         ("C-c p r" . proofreader-send-region)
-         ("C-c p o" . proofreader-open-json)
-         ("C-c p a" . proofreader-apply)))
+           :url "https://github.com/ichibeikatura/proofreader.el"))
 
 ;;  year-convert (西暦・和暦変換)
 (use-package year-convert
