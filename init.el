@@ -45,7 +45,6 @@
 
 (elpaca elpaca-use-package
   (elpaca-use-package-mode))
-;(elpaca-wait)
 
 ;;; Emacs 基本設定 & グローバルキーバインド
 
@@ -85,8 +84,6 @@
 ;; バックアップ
   (backup-by-copying t)
   (version-control t)
-  (kept-old-versions 3)
-  (kept-new-versions 5)
   (delete-old-versions t)
   :init
   ;; 基本設定
@@ -117,14 +114,14 @@
    ;; タブ操作
    ("M-{" . tab-previous)
    ("M-}" . tab-next)
-
    ;; バッファ操作
    ("C-t" . switch-to-next-buffer)
    ("C-M-t" . switch-to-prev-buffer)
    ("C-x C-b" . bs-show)
    ("C-c C-b" . ibuffer)
    ("C-c C-o" . revert-buffer-quick)
-   
+   ([remap find-file] . find-file-at-point)
+  
    ;; 検索・編集・移動
    ("C-M-s" . isearch-forward)
    ("M-=" . count-words-region)
@@ -132,10 +129,13 @@
    ("C-c o" . browse-url-at-point)
    ("C-c C-f" . consult-fd)
    ("C-c C-j" . open-junk-file)   
-
    ;; 補完・展開
    ("C-]" . hippie-expand)
-   ("C-\\" . dabbrev-expand))
+   ("C-\\" . dabbrev-expand)
+   ;; 小さいツール
+   ("C-q" . my/epub-convert)
+   ("C-c d" . my/insert-diary-entry)
+   )
 
 ;;; load-path
 ;; ~/.emacs.d/site-lisp 定義
@@ -157,9 +157,8 @@
   (add-to-list 'exec-path "/opt/homebrew/bin"))
 
 ;;; 表示・UI
-;;; ========================================l
+;;; ========================================
 (blink-cursor-mode -1)
-;(display-battery-mode 1)
 (global-hl-line-mode 1)
 (transient-mark-mode 1)
 (fringe-mode 0)
@@ -170,9 +169,6 @@
 (show-paren-mode 1)
 
 ;;; FFAP
-
-;(ffap-bindings)
-(global-set-key [remap find-file] 'find-file-at-point)
 (autoload 'find-file-at-point "ffap" nil t)
 
  
@@ -232,10 +228,10 @@
         `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
   (setq backup-directory-alist
         `((".*" . ,(no-littering-expand-var-file-name "backup/"))))
-  (setq version-control t)     ;; バージョン番号をつける
-  (setq kept-new-versions 5)   ;; 最新5世代残す
-  (setq kept-old-versions 0)   ;; 最古は残さない
-  (setq delete-old-versions t) ;; 古いものは勝手に消す
+  (setq version-control t)
+  (setq kept-new-versions 5)
+  (setq kept-old-versions 3)
+  (setq delete-old-versions t)
   )
 
 (use-package tab-bar
@@ -577,7 +573,7 @@
         ("y" . dirvish-yank-menu)
         ("s" . dirvish-quicksort)
         ("TAB" . dirvish-subtree-toggle)
-	("<backspace>" . dired-up-directory)))
+        ("<backspace>" . dired-up-directory)))
 
 
 ;;; BM（可視ブックマーク）
@@ -663,8 +659,6 @@
   (setq skk-lookup-search-agents
         (cl-remove-if (lambda (x) (memq (car x) '(ndkks ndcookie ndnmz)))
                      lookup-search-agents))
-
-
   ;; 辞書設定:マクロ定義: 設定記述を簡単にするためのローカル関数
   (let ((add-opt (lambda (dic-name regexp split)
                    (add-to-list 'skk-lookup-option-alist
@@ -680,19 +674,14 @@
     ;; 1. 【 】の中身を抽出するタイプ (広辞苑など)
     (dolist (dic-name '("kojien" "jirin21" "hot01" "skpkogo2" "skpkoku2" "skpkoji2" "hyogen"))
       (funcall add-opt dic-name '("【\\([^】]+\\)】" . 1) "・"))
-
     ;; 2. 行頭の【 】抽出・分割なし (SKP漢語)
     (funcall add-opt "skpknw2" '("^【\\([^】]+\\)】" . 1) nil)
-
     ;; 3. （ ）の中身抽出・／分割 (マイペディア)
     (funcall add-opt "mypaedia" '("（\\([^）]+\\)）" . 1) "／")
-
     ;; 4. スペースの後ろ抽出 (研究社中辞典)
     (funcall add-opt "chujiten" '("\\s-+\\(.+\\)$" . 1) nil)
-
     ;; 5. 【 】の前方抽出 (日本史辞典)
     (funcall add-opt "nihonshi" '("^\\([^【]+\\)【" . 1) nil)
-
     ;; 6. そのまま抽出 (新選国語、百科事典)
     (dolist (dic-name '("ssn" "ency" "chimei" "jinmei"))
       (funcall add-opt dic-name nil nil))))
@@ -853,7 +842,7 @@
      (point-min) (point-max) 
      script-path)
     (message "EPUB generation sent.")))
-(global-set-key (kbd "C-q") #'my/epub-convert)
+
 
 ;; 個人設定
 (defun my/insert-diary-entry ()
@@ -872,7 +861,6 @@
     (let ((body-pos (point)))
       (insert (format "\n出典:%s\n\n----\n" source))
       (goto-char body-pos))))
-(global-set-key (kbd "C-c d") #'my/insert-diary-entry)
 
 ;;;メモ書き用
 (defvar my/junk-file-directory (expand-file-name "~/My Drive/memo/")
