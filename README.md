@@ -42,7 +42,7 @@ brew install ripgrep fd coreutils pngpaste
 ### フォント
 
 以下のいずれかをインストール：
-- [M PLUS 1 Code](https://github.com/coz-m/MPLUS_FONTS)
+- [M+ 1mn](https://github.com/coz-m/MPLUS_FONTS)
 - [PlemolJP](https://github.com/yuru7/PlemolJP)
 
 ### SKK 辞書サーバー

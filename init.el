@@ -1,9 +1,11 @@
 ;; -*- lexical-binding: t; -*-
+
 ;;; Native Compilation
 (with-eval-after-load 'comp
   (setq native-comp-async-jobs-number 12
         native-comp-speed 2))
 (setq byte-compile-warnings '(not obsolete))
+
 ;;; Elpaca ブートストラップ
 (defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
@@ -59,7 +61,6 @@
   (setq transient-align-variable-pitch t)  
   (transient-define-prefix my/outline-menu ()
     "Custom Menu"
-    ;; 余計なスペースを削除して詰めることで、Transientの自動整列を正常に機能させます
     [["表示"
       ("h" "見出表示"    outline-hide-body)
       ("a" "全て表示"     outline-show-all)
@@ -77,16 +78,13 @@
 
 (use-package emacs
   :custom
-  ;; 現代的なマシンスペックに合わせてUndo制限を緩和
-  (undo-limit 67108864)         ; 64MB
-  (undo-strong-limit 100663296) ; 96MB
-  (undo-outer-limit 1006632960) ; 960MB
-;; バックアップ
+  (undo-limit 67108864)
+  (undo-strong-limit 100663296)
+  (undo-outer-limit 1006632960)
   (backup-by-copying t)
   (version-control t)
   (delete-old-versions t)
   :init
-  ;; 基本設定
   (prefer-coding-system 'utf-8-hfs)
   (set-file-name-coding-system 'utf-8-hfs)
   (setenv "LANG" "ja_JP.UTF-8")
@@ -98,52 +96,40 @@
         read-extended-command-predicate #'command-completion-default-include-p
         kill-ring-max 200)
   (setq auth-sources `(,(expand-file-name "~/.authinfo")))
-  ;; Minibuffer Prompt
   (setq minibuffer-prompt-properties
         '(read-only t cursor-intangible t face minibuffer-prompt))
   (setq split-width-threshold nil)
-  ;; サーバー起動
   (add-hook 'emacs-startup-hook
           (lambda ()
             (require 'server)
             (unless (server-running-p) (server-start))))
   (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-mode))
-  ;; ネットワーク経由のホスト解決を無効化
   (setq ffap-machine-p-known 'reject)
   :bind
-   ;; タブ操作
    ("M-{" . tab-previous)
    ("M-}" . tab-next)
-   ;; バッファ操作
    ("C-t" . switch-to-next-buffer)
    ("C-M-t" . switch-to-prev-buffer)
    ("C-x C-b" . bs-show)
    ("C-c C-b" . ibuffer)
    ("C-c C-o" . revert-buffer-quick)
    ([remap find-file] . find-file-at-point)
-  
-   ;; 検索・編集・移動
    ("C-M-s" . isearch-forward)
    ("M-=" . count-words-region)
    ("C-h" . backward-delete-char)
    ("C-c o" . browse-url-at-point)
    ("C-c C-f" . consult-fd)
    ("C-c C-j" . open-junk-file)   
-   ;; 補完・展開
    ("C-]" . hippie-expand)
    ("C-\\" . dabbrev-expand)
-   ;; 小さいツール
    ("C-q" . my/epub-convert)
    ("C-c d" . my/insert-diary-entry)
    )
 
 ;;; load-path
-;; ~/.emacs.d/site-lisp 定義
 (defvar my-site-lisp-dir (locate-user-emacs-file "site-lisp"))
-
-;; ディレクトリが存在すれば、その直下のサブディレクトリを全部 load-path に追加
 (when (file-directory-p my-site-lisp-dir)
-  (add-to-list 'load-path my-site-lisp-dir) ;; site-lisp自体も追加
+  (add-to-list 'load-path my-site-lisp-dir)
   (let ((default-directory my-site-lisp-dir))
     (normal-top-level-add-subdirs-to-load-path)))
 
@@ -157,7 +143,6 @@
   (add-to-list 'exec-path "/opt/homebrew/bin"))
 
 ;;; 表示・UI
-;;; ========================================
 (blink-cursor-mode -1)
 (global-hl-line-mode 1)
 (transient-mark-mode 1)
@@ -171,9 +156,7 @@
 ;;; FFAP
 (autoload 'find-file-at-point "ffap" nil t)
 
- 
 ;;; 配列 (Dvorak)
-
 (setq skk-henkan-show-candidates-keys
       '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s ?-))
 
@@ -184,8 +167,8 @@
 (defun dvorak ()
   "Switch to Dvorak layout instantly."
   (interactive)
-  (setq keyboard-translate-table my-dvorak-translation-table)
-  (message "Input: Dvorak"))
+  (setq keyboard-translate-table my-dvorak-translation-table))
+
 
 (defun qwerty ()
   "Switch to Qwerty layout instantly."
@@ -196,7 +179,6 @@
 (dvorak)
 
 ;;; 文字コード・濁点分離対策
-
 (defun my/normalize-nfc-buffer ()
   "バッファ全体をNFC正規化"
   (interactive)
@@ -205,25 +187,18 @@
     (ucs-normalize-NFC-region (point-min) (point-max))
     (goto-char (min p (point-max)))
     (set-buffer-modified-p modified)))
-
-;; 侵入経路1: ファイル読み込み時
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
-
-;; 侵入経路2: 保存前（念のため）
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
-;; 侵入経路3: クリップボード経由
 (defun my/normalize-nfc-yank (orig-fun &rest args)
   (let ((result (apply orig-fun args)))
     (ucs-normalize-NFC-region (region-beginning) (region-end))
     result))
-
 (advice-add 'yank :around #'my/normalize-nfc-yank)
 
 (use-package no-littering
   :ensure t
   :config
-  ;; オートセーブとバックアップの場所を固定
   (setq auto-save-file-name-transforms
         `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
   (setq backup-directory-alist
@@ -231,8 +206,7 @@
   (setq version-control t)
   (setq kept-new-versions 5)
   (setq kept-old-versions 3)
-  (setq delete-old-versions t)
-  )
+  (setq delete-old-versions t))
 
 (use-package tab-bar
   :ensure nil
@@ -248,8 +222,7 @@
 (use-package nerd-icons
   :ensure t)
 
-;;; 補完エコシステム (Vertico, Consult, etc.)
-
+;;; 補完エコシステム
 (use-package vertico
   :ensure t
   :custom
@@ -279,14 +252,12 @@
   :init
   (marginalia-mode 1))
 
-
 (use-package consult
   :ensure t
   :bind
   (("C-s" . consult-line)
    ("C-M-l" . consult-outline)
    ("C-;" . consult-history)
-   ;; 統合されたキーバインド
    ("C-M-y" . consult-yank-pop)
    ("C-'" . consult-buffer)
    ("M-g M-g" . consult-goto-line)
@@ -324,7 +295,7 @@
   :init
   (which-key-mode 1))
 
-;;; Midnight（古いバッファ自動削除）
+;;; Midnight
 (use-package midnight
   :init
   (midnight-mode 1))
@@ -333,8 +304,7 @@
 (use-package uptimes
   :ensure t
   :config
-  (setq uptimes-database-file (no-littering-expand-var-file-name "uptimes.el")
-  ))
+  (setq uptimes-database-file (no-littering-expand-var-file-name "uptimes.el")))
 
 (use-package kreplace
   :ensure nil
@@ -342,14 +312,12 @@
   :bind ("C-c C-y" . kreplace)
   :init
   (defconst kreplace-kyujitai "亞惡壓圍醫爲壹飮隱鬱營榮衞驛圓艷鹽奧應歐毆穩櫻假價畫屆會壞懷繪擴覺學嶽樂殼勸卷歡罐觀關巖顏凾陷歸氣龜僞戲犧舊據擧峽挾狹曉區驅勳徑惠溪經繼莖螢輕鷄藝缺儉劍圈檢權獻縣險顯驗嚴效據廣恆鑛號國濟碎齋册劑雜參蠶棧慘讚贊殘齒兒辭濕實舍寫釋壽收龝從澁獸縱肅處敍奬將燒稱證乘剩壤孃條淨疊穰讓釀觸寢愼晉眞盡繩圖粹醉穗隨髓數樞聲靜齊竊攝專戰淺濳纖踐錢禪壯雙搜插爭總聰莊裝騷臟藏屬續墮體對帶滯臺擇澤單擔膽團彈斷遲癡晝蟲鑄廳聽鎭遞鐵轉點傳兔黨當盜燈稻鬪獨讀貳惱腦廢拜賣麥發髮拔蠻濱拂佛變竝篦邊辨餠舖寶豐冐沒萬滿默來亂彌藥譯豫餘與譽搖樣謠覽兩獵壘勵禮靈齡戀爐勞樓瀧祿蘆灣祕囑劵敕豎廚禰")
- 
   (defconst kreplace-shinjitai "亜悪圧囲医為壱飲隠欝営栄衛駅円艶塩奥応欧殴穏桜仮価画届会壊懐絵拡覚学岳楽殻勧巻歓缶観関巌顔函陥帰気亀偽戯犠旧拠挙峡挟狭暁区駆勲径恵渓経継茎蛍軽鶏芸欠倹剣圏検権献県険顕験厳効拠広恒鉱号国済砕斎冊剤雑参蚕桟惨讃賛残歯児辞湿実舎写釈寿収穐従渋獣縦粛処叙奨将焼称証乗剰壌嬢条浄畳穣譲醸触寝慎晋真尽縄図粋酔穂随髄数枢声静斉窃摂専戦浅潜繊践銭禅壮双捜挿争総聡荘装騒臓蔵属続堕体対帯滞台択沢単担胆団弾断遅痴昼虫鋳庁聴鎮逓鉄転点伝兎党当盗灯稲闘独読弐悩脳廃拝売麦発髪抜蛮浜払仏変並箆辺弁餅舗宝豊冒没万満黙来乱弥薬訳予余与誉揺様謡覧両猟塁励礼霊齢恋炉労楼滝禄芦湾秘嘱券勅竪厨祢")
   (defun kreplace ()
     "クリップボードの文字列から改行・空白を取り、旧字体を新字体に変換して挿入"
     (interactive)
     (let* ((str (gui-get-selection 'CLIPBOARD))
            (clean-str (replace-regexp-in-string "[ \t\n\r　]+" "" (or str "")))
-           ;; ▼ 修正箇所: seq-map + apply string
            (result-str (apply #'string
                               (seq-map (lambda (c)
                                          (if-let* ((pos (seq-position kreplace-kyujitai c)))
@@ -366,10 +334,6 @@
   (imenu-list-size 40)
   (imenu-list-auto-resize nil))
 
-;(use-package diredfl
-;  :ensure t
-;  :hook (dired-mode . diredfl-mode))
-
 ;;; Markdown
 (use-package markdown-mode
   :ensure t
@@ -385,7 +349,6 @@
   :config
   (setq markdown-mode-map (make-sparse-keymap))
 
-  ;; --- macOS用 画像貼り付け機能 ---
 (defun my/markdown-paste-image-macos ()
   (interactive)
   (unless (eq system-type 'darwin)
@@ -394,22 +357,19 @@
     (user-error "pngpaste is not installed"))
   
   (let* ((img-name (format-time-string "%Y%m%d_%H%M%S.png"))
-         (img-dir (expand-file-name "images/" default-directory)) ;; buffer-file-name依存を減らす
+         (img-dir (expand-file-name "images/" default-directory))
          (img-path (expand-file-name img-name img-dir))
          (rel-path (file-relative-name img-path default-directory)))
     
     (unless (file-exists-p img-dir)
       (make-directory img-dir t))
     
-    ;; shell-command ではなく call-process を使用
     (if (zerop (call-process "pngpaste" nil nil nil img-path))
         (progn
           (insert (format "![](%s)" rel-path))
-          ;; カーソル位置調整などが不要ならこれだけでOK
           (message "Saved: %s" rel-path))
       (user-error "pngpaste failed; ensure an image is in the clipboard"))))
 
-  ;; --- 画像表示時の自動縮小 (40%) ---
   (defun my/create-image-with-width (orig file &optional type data-p &rest props)
     (let ((type (or type (image-type file data-p))))
       (if (and (derived-mode-p 'markdown-mode)
@@ -418,13 +378,11 @@
         (apply orig file type data-p props))))
   (advice-add 'create-image :around #'my/create-image-with-width))
 
-;;; バッファ名の一意化
 (use-package uniquify
   :custom
-(setq uniquify-buffer-name-style 'post-forward-angle-brackets
-      uniquify-ignore-buffers-re "^\\*"))
+  (setq uniquify-buffer-name-style 'post-forward-angle-brackets
+        uniquify-ignore-buffers-re "^\\*"))
 
-;;; Super Save（自動保存強化）
 (use-package super-save
   :ensure t
   :custom
@@ -435,30 +393,27 @@
   (add-to-list 'super-save-triggers 'switch-window)
   (super-save-mode 1))
 
-;;; So Long（長い行のパフォーマンス対策）
+;;; So Long
 (use-package so-long
   :init
   (global-so-long-mode 1))
 
-;;; 履歴・状態の永続化
 (use-package savehist
   :custom
   (savehist-additional-variables '(kill-ring))
-  :init
-  (savehist-mode 1))
+  :hook (after-init . savehist-mode))
 
 (use-package saveplace
-  :init
-  (save-place-mode 1))
+  :hook (after-init . save-place-mode))
 
-;;; Auto Revert（外部変更の自動反映）
+;;; Auto Revert
 (use-package autorevert
   :custom
   (auto-revert-interval 1)
   :init
   (global-auto-revert-mode 1))
 
-;;; 検索ツール (Deadgrep)
+;;; 検索ツール
 (use-package deadgrep
   :ensure t
   :commands deadgrep
@@ -475,14 +430,16 @@
 ;;; Recentf
 (use-package recentf
   :after no-littering
+  :defer t
   :custom
   (recentf-max-saved-items 2000)
   (recentf-auto-cleanup 'never)
   (recentf-exclude '("\\.recentf"
                      "^/tmp/"
                      "/\\.git/"))
+  :init
+  (run-with-idle-timer 1 nil #'recentf-mode)
   :config
-  (recentf-mode 1)
   (run-with-idle-timer 600 t #'recentf-cleanup))
 
 (use-package recentf-ext
@@ -517,19 +474,13 @@
      (ndebs "/usr/local/share/dict/mypedia/")
      (ndebs "/usr/local/share/dict/jinmei/")))
   :config
-  (setq lookup-open-function 'lookup-full-screen)
-  ;;  lookup 1.4+ から lookup-foreach が消えた対策
-  (unless (fboundp 'lookup-foreach)
-    (defalias 'lookup-foreach #'mapc)))
-  
+  (setq lookup-open-function 'lookup-full-screen))
 
-;;; Prescient
 (use-package prescient
   :ensure t
   :custom
   (prescient-aggressive-file-save t)
-  :config
-  (prescient-persist-mode 1))
+  :hook (after-init . prescient-persist-mode))
 
 (use-package vertico-prescient
   :ensure t
@@ -539,11 +490,12 @@
   :init
   (vertico-prescient-mode 1))
 
-;;; Dirvish
 (use-package dirvish
   :ensure t
+  :defer t
   :init
-  (dirvish-override-dired-mode)
+  (with-eval-after-load 'dired
+    (dirvish-override-dired-mode))
   :custom
   (dirvish-default-layout '(0 0.4 0.6))
   (dirvish-use-header-line 'global)
@@ -551,7 +503,7 @@
   (dirvish-use-mode-line 'global)
   (dirvish-mode-line-format
    '(:left (sort symlink) :right (omit yank index)))
-(dirvish-attributes
+  (dirvish-attributes
    '(nerd-icons subtree-state vc-state file-size file-time file-modes git-msg collapse))
   (dirvish-subtree-state-style 'nerd)
   (dirvish-path-separators '("  ~" "  " "/"))
@@ -561,11 +513,11 @@
   (delete-by-moving-to-trash t)
   (dirvish-preview-disabled-exts '("iso" "bin" "exe" "gpg" "mp4" "mkv" "avi"))
   :config
-(setq dirvish-quick-access-entries
-      `(("h" ,(expand-file-name "~/")           "/")
-        ("d" ,(expand-file-name "~/Downloads/") "Downloads")
-        ("t" ,(expand-file-name "~/.Trash/")    "Trash")
-        ("c" ,user-emacs-directory              ".emacs.d")))
+  (setq dirvish-quick-access-entries
+        `(("h" ,(expand-file-name "~/")           "/")
+          ("d" ,(expand-file-name "~/Downloads/") "Downloads")
+          ("t" ,(expand-file-name "~/.Trash/")    "Trash")
+          ("c" ,user-emacs-directory              ".emacs.d")))
   :bind
   (:map dirvish-mode-map
         ("a" . dirvish-quick-access)
@@ -575,8 +527,7 @@
         ("TAB" . dirvish-subtree-toggle)
         ("<backspace>" . dired-up-directory)))
 
-
-;;; BM（可視ブックマーク）
+;;; BM
 (use-package bm
   :ensure t
   :bind
@@ -596,8 +547,7 @@
   (find-file . bm-buffer-restore)
   (after-revert . bm-buffer-restore)
   (vc-before-checkin . bm-buffer-save)
-  (kill-emacs . (lambda ()
-                  (ignore-errors (bm-repository-save)))))
+  (kill-emacs . (lambda () (ignore-errors (bm-repository-save)))))
 
 ;;; Magit & Forge
 (use-package magit
@@ -621,24 +571,24 @@
   :hook (magit-mode . magit-delta-mode))
 
 ;;; 日本語入力 & 変換 (DDSKK / Dabbrev)
+(defun my/dabbrev-japanese-regexp ()
+  "カーソル直前の文字種に応じたdabbrev用正規表現を返す。"
+  (when (not (bobp))
+    (let ((c (char-category-set (char-before))))
+      (cond
+       ((aref c ?a) "[-_A-Za-z0-9]")
+       ((aref c ?K) "\\cK")
+       ((aref c ?A) "\\cA")
+       ((aref c ?H) "\\cH")
+       ((aref c ?C) "\\cC")
+       ((aref c ?j) "\\cj")
+       ((aref c ?k) "\\ck")
+       ((aref c ?r) "\\cr")
+       (t nil)))))
+
 (with-eval-after-load 'dabbrev
   (defvar dabbrev-abbrev-char-regexp)
-  (defun my/dabbrev-japanese-regexp ()
-    "カーソル直前の文字種に応じた正規表現を返す。"
-    (when (not (bobp))
-      (let ((c (char-category-set (char-before))))
-        (cond
-         ((aref c ?a) "[-_A-Za-z0-9]")
-         ((aref c ?K) "\\cK")
-         ((aref c ?A) "\\cA")
-         ((aref c ?H) "\\cH")
-         ((aref c ?C) "\\cC")
-         ((aref c ?j) "\\cj")
-         ((aref c ?k) "\\ck")
-         ((aref c ?r) "\\cr")
-         (t nil)))))
   (define-advice dabbrev-expand (:around (orig-fn &rest args) japanese-support)
-    "日本語文字種に応じて `dabbrev-abbrev-char-regexp' を動的に変更。"
     (let ((dabbrev-abbrev-char-regexp
            (or (my/dabbrev-japanese-regexp)
                dabbrev-abbrev-char-regexp)))
@@ -659,43 +609,27 @@
   (setq skk-lookup-search-agents
         (cl-remove-if (lambda (x) (memq (car x) '(ndkks ndcookie ndnmz)))
                      lookup-search-agents))
-  ;; 辞書設定:マクロ定義: 設定記述を簡単にするためのローカル関数
   (let ((add-opt (lambda (dic-name regexp split)
                    (add-to-list 'skk-lookup-option-alist
-                                (list dic-name
-                                      'exact   ;; [0] 送りなし時メソッド
-                                      'exact   ;; [1] 送りあり時メソッド
-                                      'exact   ;; [2] 接頭辞・その他
-                                      t        ;; [3] 検索対象フラグ
-                                      regexp   ;; [4] 抽出正規表現 (重要: ペアで指定)
-                                      split    ;; [5] 分割文字
-                                      nil))))) ;; [6] 整形正規表現
-
-    ;; 1. 【 】の中身を抽出するタイプ (広辞苑など)
+                                (list dic-name 'exact 'exact 'exact t regexp split nil)))))
     (dolist (dic-name '("kojien" "jirin21" "hot01" "skpkogo2" "skpkoku2" "skpkoji2" "hyogen"))
       (funcall add-opt dic-name '("【\\([^】]+\\)】" . 1) "・"))
-    ;; 2. 行頭の【 】抽出・分割なし (SKP漢語)
     (funcall add-opt "skpknw2" '("^【\\([^】]+\\)】" . 1) nil)
-    ;; 3. （ ）の中身抽出・／分割 (マイペディア)
     (funcall add-opt "mypaedia" '("（\\([^）]+\\)）" . 1) "／")
-    ;; 4. スペースの後ろ抽出 (研究社中辞典)
     (funcall add-opt "chujiten" '("\\s-+\\(.+\\)$" . 1) nil)
-    ;; 5. 【 】の前方抽出 (日本史辞典)
     (funcall add-opt "nihonshi" '("^\\([^【]+\\)【" . 1) nil)
-    ;; 6. そのまま抽出 (新選国語、百科事典)
     (dolist (dic-name '("ssn" "ency" "chimei" "jinmei"))
       (funcall add-opt dic-name nil nil))))
 
+;;; DDSKK
 (use-package ddskk
   :ensure t
-  :demand t
   :init
   (setq skk-user-directory (expand-file-name "~/.skk.d"))
   :bind
   ("M-o" . skk-mode)
   :preface
   (defun skk-open-server-decoding-utf-8 ()
-    "辞書サーバと接続する。サーバープロセスを返す。 decoding coding-system が euc ではなく utf8 となる。"
     (unless (skk-server-live-p)
       (setq skkserv-process (skk-open-server-1))
       (when (skk-server-live-p)
@@ -736,17 +670,19 @@
                     (default " [--]" . "--[--]:")))
       (setq alist (cons elem (assq-delete-all (car elem) alist))))
     alist)
+;;lookup
   (require 'lookup)
-  (require 'skk-lookup)
+  (unless (fboundp 'lookup-foreach)
+    (defalias 'lookup-foreach #'mapc))
   (require 'skk-bayesian)
+  (require 'skk-lookup)
   (setq skk-search-prog-list
         '((skk-search-jisyo-file skk-jisyo 0 t)
           (skk-search-kakutei-jisyo-file skk-kakutei-jisyo 10000 t)
           (skk-search-jisyo-file skk-initial-search-jisyo 10000 t)
           (skk-search-server skk-aux-large-jisyo 10000)
 	  (skk-lookup-search)
-          ))
-  )
+          )))
 
 (use-package ddskk-posframe
   :ensure t
@@ -790,30 +726,25 @@
   :ensure t
   :bind ("C-M-'" . dmacro-exec))
 
-
 ;;; フォント設定
-(defvar my-font-options '(("Mplus 1 code" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
-(defvar my-current-font-name "Mplus 1 code")
+(setq inhibit-compacting-font-caches t)
+(defvar my-font-options '(("M+ 1mn" . "M+ 1mn") ("PlemolJP" . "PlemolJP Console NF")))
+(defvar my-current-font-name "M+ 1mn")
 (defvar my-current-font-size 14)
-
 (defun my-set-font (name size &optional frame)
-  "Set font to NAME with SIZE. Updates global vars if FRAME is nil."
   (when (member name (font-family-list))
     (unless frame (setq my-current-font-name name my-current-font-size size))
-    (set-face-attribute 'default frame :font (format "%s-%d" name size))))
-
+    (set-face-attribute 'default frame :font (font-spec :family name :size size :spacing 100))))
 (defun my/change-font () (interactive)
   (let ((choice (completing-read "Font: " (mapcar #'car my-font-options))))
     (my-set-font (cdr (assoc choice my-font-options)) (read-number "Size: " my-current-font-size))))
-
 (defun my/increase-font-size () (interactive) (my-set-font my-current-font-name (1+ my-current-font-size)))
 (defun my/decrease-font-size () (interactive) (my-set-font my-current-font-name (max 8 (1- my-current-font-size))))
-
+(my-set-font my-current-font-name my-current-font-size)
 (add-hook 'after-make-frame-functions (lambda (f) (my-set-font my-current-font-name my-current-font-size f)))
 
 ;;; 便利ツール & 自作関数
 
-;;  nhg-minor-mode (日本語執筆支援)
 (use-package nhg-minor-mode
   :ensure (nhg-minor-mode
            :url "https://github.com/ichibeikatura/nhg-minor-mode")
@@ -823,30 +754,20 @@
   :ensure (proofreader
            :url "https://github.com/ichibeikatura/proofreader.el"))
 
-;;  year-convert (西暦・和暦変換)
 (use-package year-convert
   :ensure (year-convert
            :url "https://github.com/ichibeikatura/year-convert")
   :bind ("C-M-=" . year-convert-at-point))
 
-
 (defun my/epub-convert ()
-  "現在のバッファ内容をPythonスクリプトに渡してEPUB化し、プレビューする。"
   (interactive)
-  ;; 保存していない変更があれば保存
-  (when (buffer-modified-p)
-    (save-buffer))
+  (when (buffer-modified-p) (save-buffer))
   (let ((script-path (expand-file-name "~/Documents/github/convert_epub/convert_epub.py")))
     (message "Generating EPUB...")
-    (shell-command-on-region 
-     (point-min) (point-max) 
-     script-path)
+    (shell-command-on-region (point-min) (point-max) script-path)
     (message "EPUB generation sent.")))
 
-
-;; 個人設定
 (defun my/insert-diary-entry ()
-  "日記エントリを挿入する。"
   (interactive)
   (let* ((input (read-string "日付 (YYYYMMDD): "))
          (date (format "%s年%s月%s日"
@@ -862,22 +783,18 @@
       (insert (format "\n出典:%s\n\n----\n" source))
       (goto-char body-pos))))
 
-;;;メモ書き用
 (defvar my/junk-file-directory (expand-file-name "~/My Drive/memo/")
   "Junkファイルの保存ディレクトリ")
 (defun open-junk-file ()
   (interactive)
-  (let* ((file (expand-file-name
-                (format-time-string "%Y_%m_%d_%H_%M_%S.txt" (current-time))
-                my/junk-file-directory))
-         (dir (file-name-directory file)))
+  (let ((file (expand-file-name
+               (format-time-string "%Y_%m_%d_%H_%M_%S.txt" (current-time))
+               my/junk-file-directory)))
     (find-file file)
     (insert (format-time-string "%Y-%m-%d %H:%M\n" (current-time)))
     (insert "#title: ")))
 
-;; ネイティブコンパイル
 (defun my/native-comp-packages ()
-  "個人設定ファイルとパッケージをネイティブコンパイルする。"
   (interactive)
   (let ((files (list (locate-user-emacs-file "init.el")
                      (locate-user-emacs-file "early-init.el")))
