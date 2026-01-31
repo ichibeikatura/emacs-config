@@ -47,6 +47,7 @@
 
 (elpaca elpaca-use-package
   (elpaca-use-package-mode))
+(elpaca-wait)
 
 ;;; Emacs 基本設定 & グローバルキーバインド
 
@@ -85,8 +86,8 @@
   (version-control t)
   (delete-old-versions t)
   :init
-  (prefer-coding-system 'utf-8-hfs)
-  (set-file-name-coding-system 'utf-8-hfs)
+  (prefer-coding-system 'utf-8)
+  (set-file-name-coding-system 'utf-8)
   (setenv "LANG" "ja_JP.UTF-8")
   (set-language-environment 'Japanese)
   (setq use-short-answers t
@@ -99,6 +100,8 @@
   (setq minibuffer-prompt-properties
         '(read-only t cursor-intangible t face minibuffer-prompt))
   (setq split-width-threshold nil)
+  (setq auto-window-vscroll nil)
+  (setq fast-but-imprecise-scrolling t)
   (add-hook 'emacs-startup-hook
           (lambda ()
             (require 'server)
@@ -179,6 +182,7 @@
 (dvorak)
 
 ;;; 文字コード・濁点分離対策
+
 (defun my/normalize-nfc-buffer ()
   "バッファ全体をNFC正規化"
   (interactive)
@@ -653,6 +657,7 @@
   (skk-use-look t)
   (skk-auto-insert-paren t)
   (skk-use-color-cursor t)
+  (skk-indicator-use-cursor-color t)
   (skk-inhibit-ja-dic-search t)
   (skk-latin-mode-string "[_A]")
   (skk-hiragana-mode-string "[あ]")
@@ -660,7 +665,6 @@
   (skk-jisx0208-latin-mode-string "[Ａ]")
   (skk-jisx0201-mode-string "[_ｱ]")
   (skk-abbrev-mode-string "[aA]")
-  (skk-indicator-use-cursor-color t)
   (skk-status-indicator 'left)
   :config
   ;; インジケータ設定
@@ -702,6 +706,7 @@
   (doom-modeline-major-mode-color-icon nil)
   (doom-modeline-minor-modes t)
   (doom-modeline-bar-width 5)
+  (doom-modeline-focus nil)
   :config
   (doom-modeline-mode 1)
   (doom-modeline-def-segment my-buffer-size
@@ -720,7 +725,8 @@
 
   (doom-modeline-def-modeline 'list
     '(" ☯ imenu-list " bar)
-    '("Line_" my-line-stats)))
+    '("Line_" my-line-stats))
+  )
 
 (use-package dmacro
   :ensure t
@@ -728,18 +734,22 @@
 
 ;;; フォント設定
 (setq inhibit-compacting-font-caches t)
-(defvar my-font-options '(("M+ 1mn" . "M+ 1mn") ("PlemolJP" . "PlemolJP Console NF")))
-(defvar my-current-font-name "M+ 1mn")
+(defvar my-font-options '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
+(defvar my-current-font-name "Mplus 1 code")
 (defvar my-current-font-size 14)
+
 (defun my-set-font (name size &optional frame)
   (when (member name (font-family-list))
     (unless frame (setq my-current-font-name name my-current-font-size size))
-    (set-face-attribute 'default frame :font (font-spec :family name :size size :spacing 100))))
+    (set-face-attribute 'default frame :font (font-spec :family name :size size :weight 'thin :spacing 100))))
+
 (defun my/change-font () (interactive)
   (let ((choice (completing-read "Font: " (mapcar #'car my-font-options))))
     (my-set-font (cdr (assoc choice my-font-options)) (read-number "Size: " my-current-font-size))))
+
 (defun my/increase-font-size () (interactive) (my-set-font my-current-font-name (1+ my-current-font-size)))
 (defun my/decrease-font-size () (interactive) (my-set-font my-current-font-name (max 8 (1- my-current-font-size))))
+
 (my-set-font my-current-font-name my-current-font-size)
 (add-hook 'after-make-frame-functions (lambda (f) (my-set-font my-current-font-name my-current-font-size f)))
 
@@ -805,6 +815,6 @@
         (native-compile-async file)))
     (dolist (dir dirs)
       (when (file-directory-p dir)
-        (native-compile-async dir 'recursively)))))
+        (native-compile-async dir t)))))
 
 ;; init.el ends here
