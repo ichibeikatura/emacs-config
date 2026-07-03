@@ -10,6 +10,9 @@ elpaca/
 var/
 etc/
 .DS_Store
+/history
+/places.eld
+/.zellij-send/
 
 # 個人用
 site-lisp/

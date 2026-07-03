@@ -1,9 +1,9 @@
 ;; -*- lexical-binding: t; -*-
 
 ;;; Native Compilation
-(with-eval-after-load 'comp
-  (setq native-comp-async-jobs-number 12
-        native-comp-speed 2))
+;; Emacs 30+ では native-comp-async-jobs-number が comp-run.el 所属になり、
+;; with-eval-after-load 'comp では効かない経路があるため直接 setq する
+(setq native-comp-async-jobs-number 12)
 (setq byte-compile-warnings '(not obsolete))
 
 ;;; Elpaca ブートストラップ
@@ -48,6 +48,22 @@
 
 (elpaca elpaca-use-package
   (elpaca-use-package-mode))
+;; ここで待たないと以降の use-package の :ensure が package.el に落ちる
+(elpaca-wait)
+
+;; パス系の設定を他の全パッケージより先に確定させるため同期ロードする
+(use-package no-littering
+  :ensure t
+  :demand t
+  :config
+  (setq auto-save-file-name-transforms
+        `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+  (setq backup-directory-alist
+        `((".*" . ,(no-littering-expand-var-file-name "backup/"))))
+  ;; version-control / delete-old-versions は emacs ブロックの :custom で設定済み
+  (setq kept-new-versions 5)
+  (setq kept-old-versions 3))
+(elpaca-wait)
 
 (unless (fboundp 'set-local)
   (defun set-local (variable value)
@@ -63,10 +79,11 @@
   (version-control t)
   (delete-old-versions t)
   :init
+  ;; set-language-environment はコーディング優先度をリセットするため先に呼ぶ
+  (set-language-environment 'Japanese)
   (prefer-coding-system 'utf-8)
   (set-file-name-coding-system 'utf-8)
   (setenv "LANG" "ja_JP.UTF-8")
-  (set-language-environment 'Japanese)
   (setq use-short-answers t
         create-lockfiles nil
         read-file-name-completion-ignore-case t
@@ -115,7 +132,7 @@
 
 ;;; macOS 固有設定
 (when (eq system-type 'darwin)
-  (setq mac-option-modifier 'super
+  (setq ns-alternate-modifier 'super
         ns-command-modifier 'meta)
   (setq ns-use-proxy-icon nil)
   (setenv "PATH" (concat (expand-file-name "~/.bin") ":"
@@ -124,7 +141,7 @@
                            (getenv "PATH")))
   (add-to-list 'exec-path "/usr/local/bin")
   (add-to-list 'exec-path "/opt/homebrew/bin")
-  (add-to-list 'exec-path "~/.local/bin")
+  (add-to-list 'exec-path (expand-file-name "~/.local/bin"))
   (add-to-list 'exec-path (expand-file-name "~/.bin"))
   )
 
@@ -135,16 +152,11 @@
 ;;; 表示・UI
 (blink-cursor-mode -1)
 (global-hl-line-mode 1)
-(transient-mark-mode 1)
 (fringe-mode 0)
 (set-display-table-slot standard-display-table 'wrap ?\ )
 (setq truncate-lines nil
       truncate-partial-width-windows nil
       show-paren-delay 0)
-(show-paren-mode 1)
-
-;;; FFAP
-(autoload 'find-file-at-point "ffap" nil t)
 
 ;;; 配列 (Dvorak)
 (setq skk-henkan-show-candidates-keys
@@ -171,13 +183,17 @@
 ;;; 文字コード・濁点分離対策
 
 (defun my/normalize-nfc-buffer ()
-  "バッファ全体をNFC正規化（modified状態は維持）。"
+  "バッファ全体をNFC正規化（modified状態は維持）。
+read-only やユニバイト（バイナリ等）のバッファでは何もしない。
+find-file-hook でエラーになるとファイルオープン自体を壊すため。"
   (interactive)
-  (let ((modified (buffer-modified-p))
-        (p (point)))
-    (ucs-normalize-NFC-region (point-min) (point-max))
-    (goto-char (min p (point-max)))
-    (set-buffer-modified-p modified)))
+  (when (and (not buffer-read-only)
+             enable-multibyte-characters)
+    (let ((modified (buffer-modified-p))
+          (p (point)))
+      (ucs-normalize-NFC-region (point-min) (point-max))
+      (goto-char (min p (point-max)))
+      (set-buffer-modified-p modified))))
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
@@ -202,7 +218,6 @@
 (run-with-timer 3600 3600 #'my/normalize-nfc-all-buffers)
 
 ;;;フォント設定
-(setq inhibit-compacting-font-caches t)
 (defvar my-font-alist '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
 (defvar my-current-font-name "Mplus 1 code")
 (defvar my-current-font-size 14)
@@ -253,13 +268,11 @@
 
 (use-package transient
   :ensure t
-  :after no-littering
   :bind
   ("C-c t" . my/outline-menu)
   :config
   (require 'outline)
-  (setq transient-history-file (no-littering-expand-var-file-name "transient/history.el"))
-  (setq transient-align-variable-pitch t)  
+  (setq transient-align-variable-pitch t)
   (transient-define-prefix my/outline-menu ()
     "Custom Menu"
     [["表示"
@@ -278,18 +291,6 @@
      ["zellij-send"
       ("z" "zellij-send"  zellij-send)]
      ]))
-
-(use-package no-littering
-  :ensure t
-  :config
-  (setq auto-save-file-name-transforms
-        `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
-  (setq backup-directory-alist
-        `((".*" . ,(no-littering-expand-var-file-name "backup/"))))
-  ;; version-control は emacs ブロックの :custom で設定済み
-  (setq kept-new-versions 5)
-  (setq kept-old-versions 3)
-  (setq delete-old-versions t))
 
 (use-package eat
   :ensure t
@@ -353,7 +354,6 @@
    ("C-c C-s" . consult-ripgrep)
    ("C-x C-y" . consult-recent-file))
   :custom
-  (consult-preview-raw-size 1024000)
   (consult-async-refresh-delay 0.1)
   (consult-narrow-key "?"))
 
@@ -375,9 +375,9 @@
   :config
   (doric-themes-select 'doric-cherry))
 
-;;; Which Key
+;;; Which Key (Emacs 30+ built-in)
 (use-package which-key
-  :ensure t
+  :ensure nil
   :custom
   (which-key-max-description-length 40)
   (which-key-use-C-h-commands t)
@@ -390,10 +390,9 @@
   (midnight-mode 1))
 
 ;;; ユーティリティ
+;; 保存先 uptimes-database は no-littering が var/ へ設定する
 (use-package uptimes
-  :ensure t
-  :config
-  (setq uptimes-database-file (no-littering-expand-var-file-name "uptimes.el")))
+  :ensure t)
 
 (use-package kreplace
   :ensure nil
@@ -517,15 +516,17 @@
   :ensure t
   :hook
   (markdown-mode . markdown-toggle-markup-hiding)
-  :bind (:map markdown-mode-map
-         ("C-c I" . my/markdown-paste-image-macos)
-         ("C-c C-i" . markdown-toggle-inline-images))
   :custom
   (markdown-fontify-code-blocks-natively t)
   (markdown-header-scaling t)
   (markdown-indent-on-enter 'indent-and-new-item)
   :config
-  (setq markdown-mode-map (make-sparse-keymap))
+  ;; 表示用に使うのでデフォルトのキーバインドは空にする。
+  ;; setq で別マップに差し替えると gfm-mode-map 等が捕まえた旧参照に効かず、
+  ;; :bind だとクリアとの順序が保証されないため、setcdr で空にしてから束縛する。
+  (setcdr markdown-mode-map nil)
+  (keymap-set markdown-mode-map "C-c I" #'my/markdown-paste-image-macos)
+  (keymap-set markdown-mode-map "C-c C-i" #'markdown-toggle-inline-images)
 
 (defun my/markdown-paste-image-macos ()
   (interactive)
@@ -558,7 +559,6 @@
 
 (use-package uniquify
   :custom
-  (uniquify-buffer-name-style 'post-forward-angle-brackets)
   (uniquify-ignore-buffers-re "^\\*"))
 
 (use-package super-save
@@ -608,13 +608,11 @@
 
 ;;; Recentf
 (use-package recentf
-  :after no-littering
   :defer t
   :custom
   (recentf-max-saved-items 2000)
   (recentf-auto-cleanup 'never)
-  (recentf-exclude '("\\.recentf"
-                     "^/tmp/"
+  (recentf-exclude '("^/tmp/"
                      "/\\.git/"))
   :init
   (run-with-idle-timer 1 nil #'recentf-mode)
@@ -659,7 +657,9 @@
   :ensure t
   :custom
   (prescient-aggressive-file-save t)
-  :hook (after-init . prescient-persist-mode))
+  ;; :ensure t のパッケージは after-init-hook 実行後に有効化されるため
+  ;; after-init に掛けると発火しない。elpaca 側のフックを使う
+  :hook (elpaca-after-init . prescient-persist-mode))
 
 (use-package vertico-prescient
   :ensure t
@@ -722,7 +722,8 @@
   (bm-cycle-all-buffers t)
   (bm-buffer-persistence t)
   :hook
-  (after-init . bm-repository-load)
+  ;; after-init だと elpaca の有効化タイミングに間に合わず発火しない
+  (elpaca-after-init . bm-repository-load)
   (kill-buffer . bm-buffer-save)
   (after-save . bm-buffer-save)
   (find-file . bm-buffer-restore)

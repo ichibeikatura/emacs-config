@@ -16,10 +16,8 @@
 (setq site-run-file nil) ;; default.el 等を読まない
 
 
-;; GC・プロセス最適化
+;; GC最適化
 (setq gc-cons-threshold (* 128 1024 1024))
-(setq garbage-collection-messages nil)
-(setq read-process-output-max (* 8 1024 1024)) ;; 8MB
 
 ;; 起動後の復帰処理
 (add-hook 'after-init-hook
@@ -37,7 +35,6 @@
 
 ;; 起動時の表示抑制
 (setq inhibit-startup-screen t)
-(setq inhibit-startup-message t)
 (setq inhibit-startup-buffer-menu t)
 (setq inhibit-default-init t)
 (setq initial-scratch-message nil)
@@ -65,8 +62,6 @@
 
 
 ;; その他
-;; X resources無視
-(advice-add 'x-apply-session-resources :override 'ignore)
 ;; マウスのダイアログ無効化
 (setq use-dialog-box nil)
 (setq use-file-dialog nil)
