@@ -65,10 +65,6 @@
   (setq kept-old-versions 3))
 (elpaca-wait)
 
-(unless (fboundp 'set-local)
-  (defun set-local (variable value)
-    "Make VARIABLE buffer local and set it to VALUE."
-    (set (make-local-variable variable) value)))
 ;;; Emacs 基本設定 & グローバルキーバインド
 (use-package emacs
   :custom
@@ -86,20 +82,17 @@
   (setenv "LANG" "ja_JP.UTF-8")
   (setq use-short-answers t
         create-lockfiles nil
-        read-file-name-completion-ignore-case t
         enable-recursive-minibuffers t
         read-extended-command-predicate #'command-completion-default-include-p
         kill-ring-max 200)
   (setq auth-sources `(,(expand-file-name "~/.authinfo.gpg")))
   (setq minibuffer-prompt-properties
         '(read-only t cursor-intangible t face minibuffer-prompt))
+  ;; cursor-intangible は cursor-intangible-mode が有効なバッファでのみ効く
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
   (setq split-width-threshold nil)
   (setq auto-window-vscroll nil)
   (setq fast-but-imprecise-scrolling t)
-  (add-hook 'emacs-startup-hook
-          (lambda ()
-            (require 'server)
-            (unless (server-running-p) (server-start))))
   (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-mode))
   (setq ffap-machine-p-known 'reject)
   :bind
@@ -154,8 +147,7 @@
 (global-hl-line-mode 1)
 (fringe-mode 0)
 (set-display-table-slot standard-display-table 'wrap ?\ )
-(setq truncate-lines nil
-      truncate-partial-width-windows nil
+(setq truncate-partial-width-windows nil
       show-paren-delay 0)
 
 ;;; 配列 (Dvorak)
@@ -291,11 +283,6 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
      ["zellij-send"
       ("z" "zellij-send"  zellij-send)]
      ]))
-
-(use-package eat
-  :ensure t
-  :hook ((eshell-load . eat-eshell-mode)
-         (eshell-load . eat-eshell-visual-command-mode)))
 
 (use-package tab-bar
   :ensure nil
@@ -595,7 +582,6 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
 ;;; 検索ツール
 (use-package deadgrep
   :ensure t
-  :commands deadgrep
   :bind ("C-c S" . deadgrep)
   :custom
   (deadgrep-extra-arguments '("--no-ignore-vcs")))
@@ -678,7 +664,6 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   :custom
   (dirvish-default-layout '(0 0.4 0.6))
   (dirvish-use-header-line 'global)
-  (dirvish-highlight-current-line t)
   (dirvish-use-mode-line 'global)
   (dirvish-mode-line-format
    '(:left (sort symlink) :right (omit yank index)))
@@ -744,9 +729,11 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
 (use-package git-commit
   :after magit
   :custom
-  (git-commit-fill-column 999)
   (git-commit-summary-max-length 999)
-  (git-commit-style-convention-checks nil))
+  (git-commit-style-convention-checks nil)
+  :config
+  ;; git-commit-fill-column は magit 4.x で廃止。fill-column を直接設定する
+  (add-hook 'git-commit-setup-hook (lambda () (setq fill-column 999))))
 
 (use-package magit-delta
   :ensure t
@@ -781,8 +768,10 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
         try-complete-file-name-partially
         try-complete-file-name))
 
+;; skk がロード時に require するので起動時には読み込まない
 (use-package ccc
-  :ensure (:version (lambda (_) "1.43")))
+  :ensure (:version (lambda (_) "1.43"))
+  :defer t)
 
 (use-package skk-lookup
   :ensure nil
@@ -884,34 +873,20 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   :custom
   (doom-modeline-buffer-file-name-style 'truncate-with-project)
   (doom-modeline-support-imenu t)
-  (doom-modeline-height 24)
-  (doom-modeline-icon t)
-  (doom-modeline-major-mode-icon t)
+  (doom-modeline-height 25)
   (doom-modeline-major-mode-color-icon nil)
-  (doom-modeline-minor-modes t)
-  (doom-modeline-bar-width 5)
-  (doom-modeline-focus nil)
+  (doom-modeline-bar-width 3)
+  (doom-modeline-vcs-max-length 12)
+  :custom-face
+  (mode-line ((t (:box nil))))
+  (mode-line-inactive ((t (:box nil))))
   :config
   (doom-modeline-def-segment my-buffer-size
     "Display current buffer size"
     (format "%s" (buffer-size)))
-  (defvar-local my-total-lines-cache nil)
-  (defun my--update-total-lines (&rest _)
-    "総行数キャッシュを更新。"
-    (setq my-total-lines-cache (line-number-at-pos (point-max) t)))
-  ;; 入力中の全バッファ走査を避けるため、更新は idle 時のみカレントバッファに対して行う
-  (run-with-idle-timer 0.3 t #'my--update-total-lines)
-  (doom-modeline-def-segment my-line-stats
-    "現在の行番号と総行数を表示（最適化版）"
-    (format "%s/%d"
-            (format-mode-line "%l")
-            (or my-total-lines-cache (my--update-total-lines))))
   (doom-modeline-def-modeline 'main
     '(buffer-encoding bar workspace-name buffer-info " ¦¦" vcs)
-    '(misc-info " ¦¦" "✎" my-buffer-size " ¦ ☯" my-line-stats process " " hud " " major-mode))
-  (doom-modeline-def-modeline 'list
-    '(" ☯ imenu-list " bar)
-    '("Line_" my-line-stats))
+    '(misc-info " ¦" "✎" my-buffer-size "  |  "  major-mode))
   (doom-modeline-mode 1))
 
 ;;; 便利ツール & 自作関数
