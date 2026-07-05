@@ -65,6 +65,15 @@
   (setq kept-old-versions 3))
 (elpaca-wait)
 
+;; set-local は Emacs 31 で追加された関数で、新しめの vertico や magit が使う。
+;; compat は「31 未満」にしかバックポートしないため、関数追加前の 31.0.50
+;; スナップショットでは本体にも compat にも存在せず void になる。
+;; 本体に入ったビルドへ更新すれば fboundp 判定で自動的に無効化される。
+(unless (fboundp 'set-local)
+  (defun set-local (variable value)
+    "Make VARIABLE buffer local and set it to VALUE."
+    (set (make-local-variable variable) value)))
+
 ;;; Emacs 基本設定 & グローバルキーバインド
 (use-package emacs
   :custom
