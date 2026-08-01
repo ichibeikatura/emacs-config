@@ -144,14 +144,8 @@
   (setq ns-alternate-modifier 'super
         ns-command-modifier 'meta)
   (setq ns-use-proxy-icon nil)
-  (setenv "PATH" (concat (expand-file-name "~/.bin") ":"
-                           (expand-file-name "~/.local/bin") ":"
-                           "/usr/local/bin:/opt/homebrew/bin:"
-                           (getenv "PATH")))
-  (add-to-list 'exec-path "/usr/local/bin")
-  (add-to-list 'exec-path "/opt/homebrew/bin")
-  (add-to-list 'exec-path (expand-file-name "~/.local/bin"))
-  (add-to-list 'exec-path (expand-file-name "~/.bin"))
+  ;; PATH / exec-path は early-init.el に移設（native-comp が elpaca-wait 中に
+  ;; 走るため、ここでは間に合わない）
   )
 
 (with-eval-after-load 'warnings
@@ -297,7 +291,8 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
       ("A" "一括置き換え"            proofreader-apply)
       ("o" "校正ファイルを開く"      proofreader-open-json)]
      ["zellij-send"
-      ("z" "zellij-send"  zellij-send)]
+      ("z" "zellij-send"        zellij-send)
+      ("D" "ダッシュボード"     zellij-send-dashboard)]
      ]))
 
 (use-package tab-bar
@@ -822,6 +817,40 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   :config
   (ddskk-posframe-mode 1))
 
+;;; consult 系ミニバッファでの SKK
+;; DDSKK はミニバッファに入っても自動では ON にならない。skk-setup-minibuffer は
+;; skk-minibuffer-origin-mode を見るだけだが、DDSKK 17.2 ではこの変数を
+;; セットするコードが存在しないため、素で hook に足しても何も起きない。
+;; そこで呼び出し元バッファの入力モードを自前で判定して引き継ぐ。
+(defvar my/skk-minibuffer-commands
+  '(consult-line consult-ripgrep consult-outline consult-buffer consult-fd)
+  "ミニバッファで SKK の入力モードを引き継ぐコマンドのリスト。")
+
+(defun my/skk-minibuffer-inherit-mode ()
+  "呼び出し元バッファの SKK 入力モードをミニバッファに引き継ぐ。"
+  (when (memq this-command my/skk-minibuffer-commands)
+    (let* ((win (minibuffer-selected-window))
+           (buf (and win (window-buffer win)))
+           (mode (and (buffer-live-p buf)
+                      (with-current-buffer buf
+                        (when (bound-and-true-p skk-mode)
+                          (cond (skk-abbrev-mode 'abbrev)
+                                (skk-jisx0208-latin-mode 'jisx0208-latin)
+                                (skk-latin-mode 'latin)
+                                (skk-j-mode (if skk-katakana 'katakana 'hiragana))))))))
+      (pcase mode
+        ('hiragana (skk-j-mode-on))
+        ('katakana (skk-j-mode-on t))
+        ('abbrev (skk-abbrev-mode-on))
+        ('latin (skk-latin-mode-on))
+        ('jisx0208-latin (skk-jisx0208-latin-mode-on)))
+      (when mode
+        ;; skk-insert 後のかな整理用。抜けるときは DDSKK 側の
+        ;; minibuffer-exit-hook が外してくれる (skk.el:5072)。
+        (skk-add-skk-pre-command)))))
+
+(add-hook 'minibuffer-setup-hook #'my/skk-minibuffer-inherit-mode)
+
 ;; Doom Modeline
 (use-package doom-modeline
   :ensure t
@@ -901,6 +930,21 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
            :url "https://github.com/ichibeikatura/zellij-send.el")
   :defer t
   :commands (zellij-send))
+
+;; セッション一覧ダッシュボード。zellij-send.el と同じリポジトリに同梱されて
+;; いるので :ensure nil（elpaca がリポジトリごと load-path に入れている）。
+;; C-c t → D、または zellij-send バッファで C-c C-a → d でも開く。
+(use-package zellij-send-dashboard
+  :ensure nil
+  :defer t
+  :commands (zellij-send-dashboard)
+  :custom
+  ;; 下部に内容ぴったりの高さで開く（セッションは数個なので画面を占有しない）
+  (zellij-send-dashboard-max-height 16)
+  (zellij-send-dashboard-tail-width 40)
+  ;; 使用状況（/usage 相当）: statusLine フックが書くキャッシュを読む
+  (zellij-send-dashboard-show-usage t)
+  (zellij-send-dashboard-usage-timezone "Asia/Tokyo"))
 
 (use-package post-hatena
   :ensure (post-hatena

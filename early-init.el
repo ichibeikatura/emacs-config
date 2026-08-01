@@ -55,7 +55,21 @@
 ;; macOS固有設定
 (when (eq system-type 'darwin)
   (setq ns-use-native-fullscreen nil)
-  (setq ns-use-fullscreen-animation nil))
+  (setq ns-use-fullscreen-animation nil)
+  ;; PATH は early-init で通す。Finder/Dock 起動時の PATH は
+  ;; /usr/bin:/bin:/usr/sbin:/sbin しかなく、libgccjit が gcc ドライバとして
+  ;; /usr/bin/gcc (Apple clang) を掴んで native-comp が
+  ;; "error invoking gcc driver" で全滅するため。
+  ;; init.el 側の elpaca-wait 中に非同期コンパイラが起動するので、
+  ;; それより前 = early-init で設定する必要がある。
+  (setenv "PATH" (concat (expand-file-name "~/.bin") ":"
+                         (expand-file-name "~/.local/bin") ":"
+                         "/usr/local/bin:/opt/homebrew/bin:"
+                         (getenv "PATH")))
+  (dolist (dir (list "/usr/local/bin" "/opt/homebrew/bin"
+                     (expand-file-name "~/.local/bin")
+                     (expand-file-name "~/.bin")))
+    (add-to-list 'exec-path dir)))
 
 ;; フルスクリーン設定
 (push '(fullscreen . maximized) default-frame-alist)
