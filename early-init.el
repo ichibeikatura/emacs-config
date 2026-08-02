@@ -6,6 +6,17 @@
 (setq file-name-handler-alist nil)
 
 
+;; 時刻表現の互換設定
+;; Emacs 32 で current-time-list の既定値が nil になり、時刻が
+;; (TICKS . HZ) の cons になった。時刻を (HIGH LOW USEC PSEC) の
+;; リスト前提で分解する古いパッケージが軒並み
+;; "Wrong type argument: listp, 1000000000" (1e9 = HZ) で落ちるため、
+;; 旧形式に戻す。実例: DDSKK の skk-setup-shared-private-jisyo
+;; (mapconcat で current-time を走査)、uptimes の uptimes-float-time。
+;; before-init-time は early-init より前に C 側で記録済みなので変換する。
+(setq current-time-list t)
+(setq before-init-time (time-convert before-init-time 'list))
+
 ;; 基本ロード設定
 
 ;; .el が .elc より新しい場合、.el を読み込む（設定ミス防止）
