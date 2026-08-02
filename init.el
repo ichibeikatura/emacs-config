@@ -861,10 +861,14 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   (doom-modeline-major-mode-color-icon nil)
   (doom-modeline-bar-width 3)
   (doom-modeline-vcs-max-length 12)
-  :custom-face
-  (mode-line ((t (:box nil))))
-  (mode-line-inactive ((t (:box nil))))
   :config
+  ;; テーマによっては mode-line に :box が付いて高さがズレるので毎回落とす。
+  ;; :custom-face だとテーマ読み込み後に上書きされるため hook で対応。
+  (defun my/kill-mode-line-box (&rest _)
+    (dolist (f '(mode-line mode-line-active mode-line-inactive))
+      (set-face-attribute f nil :box nil)))
+  (add-hook 'enable-theme-functions #'my/kill-mode-line-box)
+  (my/kill-mode-line-box)
   (doom-modeline-def-segment my-buffer-size
     "Display current buffer size"
     (format "%s" (buffer-size)))
