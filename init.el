@@ -640,6 +640,8 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
         ("<backspace>" . dired-up-directory)))
 
 ;;; BM
+;; セッションを跨いだ永続化はしない (bm-buffer-persistence はデフォルトの nil のまま)。
+;; リポジトリ関連のフックが無いので :defer が実際に効き、初回キー押下までロードされない。
 (use-package bm
   :ensure t
   :defer t
@@ -647,21 +649,7 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   (("C-M-m" . bm-toggle)
    ("C-M-p" . bm-previous)
    ("C-M-n" . bm-next)
-   ("C-M-a" . bm-show-all)
-   ("C-M-o" . bm-find-files-in-repository))
-  :custom
-  (bm-restore-repository-on-load t)
-  (bm-cycle-all-buffers t)
-  (bm-buffer-persistence t)
-  :hook
-  ;; after-init だと elpaca の有効化タイミングに間に合わず発火しない
-  (elpaca-after-init . bm-repository-load)
-  (kill-buffer . bm-buffer-save)
-  (after-save . bm-buffer-save)
-  (find-file . bm-buffer-restore)
-  (after-revert . bm-buffer-restore)
-  (vc-before-checkin . bm-buffer-save)
-  (kill-emacs . (lambda () (ignore-errors (bm-repository-save)))))
+   ("C-M-a" . bm-show)))
 
 ;;; Magit
 (use-package magit
