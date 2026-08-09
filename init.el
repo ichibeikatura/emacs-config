@@ -185,17 +185,23 @@
 ;;; 文字コード・濁点分離対策
 
 (defun my/normalize-nfc-buffer ()
-  "バッファ全体をNFC正規化（modified状態は維持）。
+  "バッファ全体をNFC正規化（modified状態とリージョンは維持）。
 read-only やユニバイト（バイナリ等）のバッファでは何もしない。
-find-file-hook でエラーになるとファイルオープン自体を壊すため。"
+find-file-hook でエラーになるとファイルオープン自体を壊すため。
+
+deactivate-mark の退避が要る: バッファを書き換えると Emacs がこれを t にし、
+次のコマンドループで選択が解除される。super-save が1秒アイドルで保存するので、
+before-save-hook 経由だと選択した直後に必ずリージョンが消えてしまう。"
   (interactive)
   (when (and (not buffer-read-only)
              enable-multibyte-characters)
     (let ((modified (buffer-modified-p))
+          (deactivated deactivate-mark)
           (p (point)))
       (ucs-normalize-NFC-region (point-min) (point-max))
       (goto-char (min p (point-max)))
-      (set-buffer-modified-p modified))))
+      (set-buffer-modified-p modified)
+      (setq deactivate-mark deactivated))))
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
