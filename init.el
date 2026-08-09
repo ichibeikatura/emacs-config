@@ -199,26 +199,6 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
-;; --- 保険: 1時間ごとに全バッファを正規化 ---
-;; 謎の経路でNFDが混入しても定期的に畳む。実際に中身が変わったときだけ
-;; modified になるので、super-save がディスクへ書き戻して修正が永続化される。
-(defun my/normalize-nfc-buffer-if-changed ()
-  "カレントバッファをNFC正規化。変化した場合のみ modified にする。"
-  (let ((p (point)))
-    (ucs-normalize-NFC-region (point-min) (point-max))
-    (goto-char (min p (point-max)))))
-
-(defun my/normalize-nfc-all-buffers ()
-  "ファイルを訪問中で書き込み可能なマルチバイトバッファを正規化。"
-  (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (and buffer-file-name
-                 (not buffer-read-only)
-                 enable-multibyte-characters)
-        (ignore-errors (my/normalize-nfc-buffer-if-changed))))))
-
-(run-with-timer 3600 3600 #'my/normalize-nfc-all-buffers)
-
 ;;;フォント設定
 (defvar my-font-alist '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
 (defvar my-current-font-name "Mplus 1 code")
