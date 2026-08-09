@@ -385,6 +385,16 @@ find-file-hook でエラーになるとファイルオープン自体を壊す�
   (("C-c C-r" . doric-themes-load-random)
    ("C-c C-t" . doric-themes-select))
   :config
+  ;; doric は hl-line に bg-accent、region に bg-shadow-intense を当てる。どちらも
+  ;; アクセント系の同系色なので、カーソル行だけ選択してもほとんど色が変わって
+  ;; 見えない（doric-cherry なら #ecc0e4 → #cc95b7）。region はテーマの色のまま
+  ;; 残し、hl-line を無彩色寄りの bg-shadow-subtle 相当に落として差を付ける。
+  ;; その色を直接参照する術がないので、同じ値を持つ secondary-selection から借りる。
+  (defun my/dim-hl-line (&rest _)
+    (let ((bg (face-attribute 'secondary-selection :background nil t)))
+      (when (and (facep 'hl-line) (stringp bg))
+        (set-face-attribute 'hl-line nil :background bg))))
+  (add-hook 'enable-theme-functions #'my/dim-hl-line)
   (doric-themes-select 'doric-cherry))
 
 ;;; Which Key (Emacs 30+ built-in)
