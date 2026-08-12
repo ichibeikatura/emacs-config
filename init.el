@@ -434,8 +434,10 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   ;; 上書きフックを外し、幅 40 桁向けの最小 doom-modeline を割り当てる。
   (remove-hook 'imenu-list-major-mode-hook #'imenu-list--set-mode-line)
   (defun my/imenu-list-modeline ()
-    "*Ilist* に最小構成の doom-modeline を設定する。"
-    (doom-modeline-set-modeline 'my-ilist 'local))
+    "*Ilist* に最小構成の doom-modeline を設定する。
+`doom-modeline-set-modeline' の第2引数は「デフォルト値に設定」フラグなので、
+渡してはいけない（渡すと全バッファのモードラインが *Ilist* 用になる）。"
+    (doom-modeline-set-modeline 'my-ilist))
   (add-hook 'imenu-list-major-mode-hook #'my/imenu-list-modeline))
 
 ;;; Markdown
