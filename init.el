@@ -109,7 +109,8 @@
   (setq split-width-threshold nil)
   (setq auto-window-vscroll nil)
   (setq fast-but-imprecise-scrolling t)
-  (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-mode))
+  ;; markdown-ts-mode-maybe はグラマ未導入なら text-mode に落ちる
+  (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-ts-mode-maybe))
   (setq ffap-machine-p-known 'reject)
   :bind
    ("M-{" . tab-previous)
@@ -266,7 +267,7 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
     [["表示"
       ("h" "見出表示"    outline-hide-body)
       ("a" "全て表示"     outline-show-all)
-      ("m" "装飾切替"      markdown-toggle-markup-hiding)]
+      ("m" "装飾切替"      markdown-ts-toggle-hide-markup)]
      ["タブ"
       ("d" "Close"                   tab-bar-close-tab)
       ("n" "Newtab"                     tab-bar-new-tab)]
@@ -441,22 +442,8 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (add-hook 'imenu-list-major-mode-hook #'my/imenu-list-modeline))
 
 ;;; Markdown
-(use-package markdown-mode
-  :ensure t
-  :defer t
-  :hook
-  (markdown-mode . markdown-toggle-markup-hiding)
-  :custom
-  (markdown-fontify-code-blocks-natively t)
-  (markdown-header-scaling t)
-  (markdown-indent-on-enter 'indent-and-new-item)
-  :config
-  ;; 表示用に使うのでデフォルトのキーバインドは空にする。
-  ;; setq で別マップに差し替えると gfm-mode-map 等が捕まえた旧参照に効かず、
-  ;; :bind だとクリアとの順序が保証されないため、setcdr で空にしてから束縛する。
-  (setcdr markdown-mode-map nil)
-  (keymap-set markdown-mode-map "C-c I" #'my/markdown-paste-image-macos)
-  (keymap-set markdown-mode-map "C-c C-i" #'markdown-toggle-inline-images)
+;; Emacs 32 同梱の markdown-ts-mode を使う。.md/.markdown/.mdx の
+;; auto-mode-alist 登録は markdown-ts-mode 側の autoload で済んでいる。
 
 (defun my/markdown-paste-image-macos ()
   (interactive)
@@ -464,28 +451,57 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
     (user-error "This function is for macOS only"))
   (unless (executable-find "pngpaste")
     (user-error "pngpaste is not installed"))
-  
+
   (let* ((img-name (format-time-string "%Y%m%d_%H%M%S.png"))
          (img-dir (expand-file-name "images/" default-directory))
          (img-path (expand-file-name img-name img-dir))
          (rel-path (file-relative-name img-path default-directory)))
-    
+
     (unless (file-exists-p img-dir)
       (make-directory img-dir t))
-    
+
     (if (zerop (call-process "pngpaste" nil nil nil img-path))
         (progn
           (insert (format "![](%s)" rel-path))
           (message "Saved: %s" rel-path))
       (user-error "pngpaste failed; ensure an image is in the clipboard"))))
 
-  (defun my/create-image-with-width (orig file &optional type data-p &rest props)
-    (let ((type (or type (image-type file data-p))))
-      (if (and (derived-mode-p 'markdown-mode)
-               (eq type 'png))
-          (apply orig file type data-p (plist-put props :scale 0.4))
-        (apply orig file type data-p props))))
-  (advice-add 'create-image :around #'my/create-image-with-width))
+(defun my/markdown-view ()
+  "現在のバッファを読み取り専用の Markdown ビューにする。"
+  (interactive)
+  (markdown-ts-view-mode))
+
+(defun my/markdown-edit ()
+  "Markdown ビューから編集モードに戻る。"
+  (interactive)
+  (markdown-ts-mode)
+  ;; markdown-ts-view-mode が立てた read-only を明示的に降ろす
+  (setq buffer-read-only nil))
+
+(use-package markdown-ts-mode
+  :defer t
+  :custom
+  ;; 開いた時点で装飾を隠し画像を出す（view-mode と同じ見え方で編集できる）
+  (markdown-ts-hide-markup t)
+  (markdown-ts-inline-images t)
+  ;; 旧 create-image advice（:scale 0.4）の代わり。ウィンドウ幅で頭打ちにする
+  (markdown-ts-image-max-width 'window)
+  (markdown-ts-fontify-code-blocks-natively t)
+  :custom-face
+  ;; 旧 markdown-header-scaling t 相当
+  (markdown-ts-heading-1 ((t (:height 1.4))))
+  (markdown-ts-heading-2 ((t (:height 1.2))))
+  (markdown-ts-heading-3 ((t (:height 1.1))))
+  :config
+  ;; 表示用に使うのでデフォルトのキーバインドは空にする。
+  ;; setq で別マップに差し替えると派生モードが捕まえた旧参照に効かず、
+  ;; :bind だとクリアとの順序が保証されないため、setcdr で空にしてから束縛する。
+  (setcdr markdown-ts-mode-map nil)
+  (keymap-set markdown-ts-mode-map "C-c I" #'my/markdown-paste-image-macos)
+  (keymap-set markdown-ts-mode-map "C-c C-i" #'markdown-ts-toggle-inline-images)
+  (keymap-set markdown-ts-mode-map "C-c v" #'my/markdown-view)
+  ;; view 側は special-mode-map 由来の単キー（n/p/f/b/q）をそのまま使う
+  (keymap-set markdown-ts-view-mode-map "e" #'my/markdown-edit))
 
 (use-package uniquify
   :custom
@@ -880,7 +896,9 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   :ensure (nhg-minor-mode
            :url "https://github.com/ichibeikatura/nhg-minor-mode")
   :defer t
-  :hook ((text-mode markdown-mode) . nhg-minor-mode))
+  ;; markdown-ts-mode は text-mode 派生なので text-mode-hook で拾える。
+  ;; markdown-ts-view-mode は親が nil で text-mode-hook が走らないため個別に指定する。
+  :hook ((text-mode markdown-ts-view-mode) . nhg-minor-mode))
 
 (use-package proofreader
   :ensure (proofreader
