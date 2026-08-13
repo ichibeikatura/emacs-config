@@ -6,6 +6,9 @@ eln-cache/
 elpa/
 elpaca/
 
+# tree-sitter グラマ（M-x treesit-install-language-grammar で再生成可能）
+tree-sitter/
+
 # 状態・一時ファイル
 var/
 etc/
