@@ -75,10 +75,10 @@
     (set (make-local-variable variable) value)))
 
 ;; benchmark-init（elpaca 管理下で、なるべく早い段階に）
-(use-package benchmark-init
-  :ensure t
-  :config
-  (add-hook 'after-init-hook #'benchmark-init/deactivate))
+;(use-package benchmark-init
+;  :ensure t
+;  :config
+;  (add-hook 'after-init-hook #'benchmark-init/deactivate))
 ;; 起動後 M-x benchmark-init/show-durations-tree で内訳を確認
 
 ;;; Emacs 基本設定 & グローバルキーバインド
