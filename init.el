@@ -388,13 +388,6 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (add-hook 'enable-theme-functions #'my/dim-hl-line)
   (doric-themes-select 'doric-cherry))
 
-;; お試し中: base16 ベースのライトテーマ集。テーマ本体が themes/ にあるので
-;; :files で明示的に拾う。M-x load-theme で myron-* を選んで見比べる。
-;; 依存で ct / helpful / ht / base16-theme が入る。見送るならこのブロックごと削除。
-(use-package myron-themes
-  :ensure (:host github :repo "neeasade/myron-themes"
-           :files ("*.el" "themes/*.el")))
-
 ;;; Which Key (Emacs 30+ built-in)
 (use-package which-key
   :ensure nil
