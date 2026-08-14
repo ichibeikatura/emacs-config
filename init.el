@@ -369,24 +369,24 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
         (cl-call-next-method)))))
 
 ;;; テーマ
-(use-package doric-themes
-  :ensure t
+;; Emacs 同梱の modus-themes（5.3.0）を使う。既定は modus-operandi-tinted。
+;; etc/themes は load-path に無く (require 'modus-themes) が通らないので、
+;; :no-require t で use-package の require を抑止し、load-theme 側で読ませる
+;; （load-theme は custom-theme-load-path を load-path に足してテーマを読む）。
+(use-package modus-themes
+  :ensure nil
+  :no-require t
   :demand t
   :bind
-  (("C-c C-r" . doric-themes-load-random)
-   ("C-c C-t" . doric-themes-select))
+  (("C-c C-r" . modus-themes-rotate)
+   ("C-c C-t" . modus-themes-select))
   :config
-  ;; doric は hl-line に bg-accent、region に bg-shadow-intense を当てる。どちらも
-  ;; アクセント系の同系色なので、カーソル行だけ選択してもほとんど色が変わって
-  ;; 見えない（doric-cherry なら #ecc0e4 → #cc95b7）。region はテーマの色のまま
-  ;; 残し、hl-line を無彩色寄りの bg-shadow-subtle 相当に落として差を付ける。
-  ;; その色を直接参照する術がないので、同じ値を持つ secondary-selection から借りる。
-  (defun my/dim-hl-line (&rest _)
-    (let ((bg (face-attribute 'secondary-selection :background nil t)))
-      (when (and (facep 'hl-line) (stringp bg))
-        (set-face-attribute 'hl-line nil :background bg))))
-  (add-hook 'enable-theme-functions #'my/dim-hl-line)
-  (doric-themes-select 'doric-cherry))
+  ;; C-c C-r で回す順。C-c C-t なら modus 全種から選べる。
+  (setq modus-themes-to-rotate
+        '(modus-operandi-tinted modus-operandi
+          modus-vivendi-tinted modus-vivendi))
+  (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
+  (load-theme 'modus-operandi-tinted t))
 
 ;;; Which Key (Emacs 30+ built-in)
 (use-package which-key
