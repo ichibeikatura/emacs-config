@@ -62,7 +62,11 @@
         `((".*" . ,(no-littering-expand-var-file-name "backup/"))))
   ;; version-control / delete-old-versions は emacs ブロックの :custom で設定済み
   (setq kept-new-versions 5)
-  (setq kept-old-versions 3))
+  (setq kept-old-versions 3)
+  ;; custom-file を設定しないと Custom は init.el の末尾に書き込む
+  ;; (load-theme の安全確認などで実際に起きた)。Custom は使わない方針なので
+  ;; etc/custom.el に隔離し、読み込みもしない。
+  (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
 (elpaca-wait)
 
 ;; set-local は Emacs 31 で追加された関数で、新しめの vertico や magit が使う。
