@@ -378,15 +378,13 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   :no-require t
   :demand t
   :bind
-  (("C-c C-r" . modus-themes-rotate)
-   ("C-c C-t" . modus-themes-select))
+  (("C-c C-r" . modus-themes-toggle)
+  ("C-c C-t" . modus-themes-select))
   :config
-  ;; C-c C-r で回す順。C-c C-t なら modus 全種から選べる。
-  (setq modus-themes-to-rotate
-        '(modus-operandi-tinted modus-operandi
-          modus-vivendi-tinted modus-vivendi))
-  (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
+  ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
+  ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
   (load-theme 'modus-operandi-tinted t))
+
 
 ;;; Which Key (Emacs 30+ built-in)
 (use-package which-key
