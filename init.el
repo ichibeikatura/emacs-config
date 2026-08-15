@@ -480,6 +480,11 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   ;; markdown-ts-view-mode が立てた read-only を明示的に降ろす
   (setq buffer-read-only nil))
 
+;; 同梱の markdown-ts-mode 側でこれらのコマンドは autoload されていないため、
+;; transient メニュー（my/outline-menu）から参照できるよう宣言しておく。
+(autoload 'markdown-ts-toggle-hide-markup "markdown-ts-mode" nil t)
+(autoload 'markdown-ts-toggle-inline-images "markdown-ts-mode" nil t)
+
 (use-package markdown-ts-mode
   :defer t
   :custom
