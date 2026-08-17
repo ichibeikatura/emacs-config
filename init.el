@@ -210,6 +210,21 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
+;; 保存中のバッファ書き換えでリージョンが消えるのを防ぐ。
+;; text-mode 派生（markdown-ts-mode 等）は mode-require-final-newline 経由で
+;; require-final-newline が t になるため、末尾が改行でないバッファを保存すると
+;; basic-save-buffer が before-save-hook の後に \n を挿入し、そこで
+;; deactivate-mark が t になる。フックの中で退避しても後の書き換えは防げない。
+;; super-save が1秒アイドルで保存するので、末尾に書き足している最中に選択すると
+;; 1秒後にリージョンが消えていた。
+;; deactivate-mark を自分自身で let 束縛すると、中で setq されても抜けた時点で
+;; 元の値に戻る（エラーで抜けても同じ）。
+(defun my/save-buffer-keep-mark (fn &rest args)
+  "FN の実行中に立った `deactivate-mark' を捨てる。"
+  (let ((deactivate-mark deactivate-mark))
+    (apply fn args)))
+(advice-add 'basic-save-buffer :around #'my/save-buffer-keep-mark)
+
 ;;;フォント設定
 (defvar my-font-alist '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
 (defvar my-current-font-name "Mplus 1 code")
