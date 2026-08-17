@@ -479,7 +479,9 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 
     (if (zerop (call-process "pngpaste" nil nil nil img-path))
         (progn
-          (insert (format "![](%s)" rel-path))
+          ;; alt テキストを空にしない: markdown-ts-hide-markup が有効だと
+          ;; ![]() は記号が全て invisible になり、行に何も残らず消えたように見える。
+          (insert (format "![%s](%s)" (file-name-base img-name) rel-path))
           (message "Saved: %s" rel-path))
       (user-error "pngpaste failed; ensure an image is in the clipboard"))))
 
