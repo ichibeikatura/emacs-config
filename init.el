@@ -459,6 +459,52 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
        (user-error "リージョンを選択してください")))
     (japanese-hiragana-region beg end)))
 
+;; *Ilist* の見出し用フェイス。modus-themes-heading-N を :inherit すると
+;; :height（1.5 等）まで引き継いでサイドバーの行が巨大になるため、色だけを
+;; my/imenu-list-sync-heading-colors で取り込む。
+(dotimes (i 6)
+  (custom-declare-face (intern (format "my/imenu-list-heading-%d" (1+ i)))
+                       '((t :inherit imenu-list-entry-face))
+                       (format "*Ilist* の見出しレベル %d 用フェイス。" (1+ i))))
+
+(defun my/imenu-list-sync-heading-colors (&rest _)
+  "*Ilist* の見出しフェイスの色を、本文の見出し色に合わせる。
+`enable-theme-functions' から呼ぶのでライト/ダークの切り替えにも追従する。
+引数はフックから渡されるテーマ名で、参照しない。"
+  (dotimes (i 6)
+    (let ((src (intern (format "modus-themes-heading-%d" (1+ i))))
+          (dst (intern (format "my/imenu-list-heading-%d" (1+ i)))))
+      (when (facep src)
+        (set-face-attribute dst nil
+                            :foreground (face-attribute src :foreground nil t))))))
+
+(defvar imenu-list--displayed-buffer)
+
+(defun my/imenu-list-fontify-markdown-headings ()
+  "*Ilist* の Markdown 見出しをレベル別の色と字下げにする。
+`imenu-list-insert-entries' の :after アドバイスとして、挿入直後の
+*Ilist* バッファ上で走る。# 記号は削除せず同じ幅の空白を `display' で
+被せて隠す（文字数を変えないので、行番号とエントリの対応を持つ
+`imenu-list--line-entries' がずれない）。結果として ## は2桁分の
+字下げになり、そのまま階層のインデントとして使える。"
+  (when (and (boundp 'imenu-list--displayed-buffer)
+             (buffer-live-p imenu-list--displayed-buffer)
+             (memq (buffer-local-value 'major-mode imenu-list--displayed-buffer)
+                   '(markdown-ts-mode markdown-ts-view-mode)))
+    (let ((inhibit-read-only t))
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward "^ *\\(#+\\) " nil t)
+          (let* ((beg (match-beginning 1))
+                 (end (match-end 1))
+                 (level (min 6 (length (match-string 1)))))
+            ;; display 文字列の幅は元の文字数と揃える必要がないので、
+            ;; 1レベルにつき2桁の字下げにする。
+            (put-text-property beg end 'display (make-string (* 2 level) ?\s))
+            (put-text-property (line-beginning-position) (line-end-position)
+                               'face
+                               (intern (format "my/imenu-list-heading-%d" level)))))))))
+
 (use-package imenu-list
   :ensure t
   :bind ("C-c n" . imenu-list-smart-toggle)
@@ -476,7 +522,19 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 `doom-modeline-set-modeline' の第2引数は「デフォルト値に設定」フラグなので、
 渡してはいけない（渡すと全バッファのモードラインが *Ilist* 用になる）。"
     (doom-modeline-set-modeline 'my-ilist))
-  (add-hook 'imenu-list-major-mode-hook #'my/imenu-list-modeline))
+  (add-hook 'imenu-list-major-mode-hook #'my/imenu-list-modeline)
+
+  ;; *Ilist* の Markdown 見出しを本文と同じレベル別の色で出す。
+  ;; markdown-ts-mode の imenu は "Headings"/"Code Blocks" の2カテゴリだけの
+  ;; フラット構造で、H1〜H6 は全て同じ深さ（depth 1）に並ぶ。よって
+  ;; imenu-list の深さベースの色分け（imenu-list-entry-face-N）ではレベルを
+  ;; 区別できない。一方 markdown-ts--imenu-heading-name-function は
+  ;; atx_heading の行をそのまま返すのでエントリ名に # が残っており、
+  ;; これを数えればレベルが分かる。
+  (my/imenu-list-sync-heading-colors)
+  (add-hook 'enable-theme-functions #'my/imenu-list-sync-heading-colors)
+  (advice-add 'imenu-list-insert-entries :after
+              #'my/imenu-list-fontify-markdown-headings))
 
 ;;; Markdown
 ;; Emacs 32 同梱の markdown-ts-mode を使う。.md/.markdown/.mdx の
