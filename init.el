@@ -395,6 +395,26 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   :bind
   (("C-c C-r" . modus-themes-toggle)
   ("C-c C-t" . modus-themes-select))
+  :custom
+  ;; 見出しのサイズ差。modus-themes-heading-N フェイスに効き、markdown-ts-mode の
+  ;; markdown-ts-heading-N はこれを :inherit しているので Markdown にもそのまま乗る。
+  ;; （org は未使用なので実質 Markdown 専用の設定になっている）
+  (modus-themes-headings
+   '((1 . (1.5))
+     (2 . (1.3))
+     (3 . (1.15))
+     (4 . (1.05))
+     (t . (1.0))))
+  ;; 見出しのレベル別の色。modus 既定は fg-heading-1 が fg-main（本文と同じ黒）で
+  ;; H1 が本文に埋もれるため、レベルごとに色相を割り当てて階層を判別できるようにする。
+  ;; 値は色コードではなくパレットの意味名なので、ライト/ダークの切り替えに自動追従する。
+  (modus-themes-common-palette-overrides
+   '((fg-heading-1 blue-warmer)
+     (fg-heading-2 green-cooler)
+     (fg-heading-3 magenta-cooler)
+     (fg-heading-4 yellow-warmer)
+     (fg-heading-5 cyan-cooler)
+     (fg-heading-6 red-faint)))
   :config
   ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
   ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
@@ -502,6 +522,13 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 (autoload 'markdown-ts-toggle-hide-markup "markdown-ts-mode" nil t)
 (autoload 'markdown-ts-toggle-inline-images "markdown-ts-mode" nil t)
 
+(defun my/markdown-readable-spacing ()
+  "Markdown バッファの行間を広げ、段落の切れ目を見やすくする。
+見出しは色とサイズで区別する方針（`modus-themes-headings' 参照）なので、
+段落そのものの分離はここで行間を足して稼ぐ。バッファローカルなので
+他のモードの表示には影響しない。"
+  (setq-local line-spacing 0.25))
+
 (use-package markdown-ts-mode
   :defer t
   :custom
@@ -511,11 +538,7 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   ;; 旧 create-image advice（:scale 0.4）の代わり。ウィンドウ幅で頭打ちにする
   (markdown-ts-image-max-width 'window)
   (markdown-ts-fontify-code-blocks-natively t)
-  :custom-face
-  ;; 旧 markdown-header-scaling t 相当
-  (markdown-ts-heading-1 ((t (:height 1.4))))
-  (markdown-ts-heading-2 ((t (:height 1.2))))
-  (markdown-ts-heading-3 ((t (:height 1.1))))
+  :hook ((markdown-ts-mode markdown-ts-view-mode) . my/markdown-readable-spacing)
   :config
   ;; 表示用に使うのでデフォルトのキーバインドは空にする。
   ;; setq で別マップに差し替えると派生モードが捕まえた旧参照に効かず、
