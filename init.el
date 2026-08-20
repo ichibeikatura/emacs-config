@@ -506,9 +506,14 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
             ;; 倍数で小数も取れるため、1桁未満の細かい字下げにできる。
             (put-text-property beg end 'display
                                `(space :width ,(* level my/imenu-list-heading-indent)))
-            (put-text-property (line-beginning-position) (line-end-position)
-                               'face
-                               (intern (format "my/imenu-list-heading-%d" level)))))))))
+            ;; 色はテキストプロパティでは付けられない。imenu-list は
+            ;; `insert-button'（＝`make-button'）を使っており、これはテキスト
+            ;; プロパティではなくオーバーレイのボタンを作る。オーバーレイの
+            ;; face はテキストプロパティの face より優先されるため、
+            ;; put-text-property では上書きできずボタン側の色が残る。
+            (when-let* ((button (button-at beg)))
+              (button-put button 'face
+                          (intern (format "my/imenu-list-heading-%d" level))))))))))
 
 (use-package imenu-list
   :ensure t
