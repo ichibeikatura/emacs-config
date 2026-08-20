@@ -480,13 +480,16 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 
 (defvar imenu-list--displayed-buffer)
 
+(defvar my/imenu-list-heading-indent 0.7
+  "*Ilist* の見出し1レベルあたりの字下げ幅。単位は文字幅で、小数可。")
+
 (defun my/imenu-list-fontify-markdown-headings ()
   "*Ilist* の Markdown 見出しをレベル別の色と字下げにする。
 `imenu-list-insert-entries' の :after アドバイスとして、挿入直後の
-*Ilist* バッファ上で走る。# 記号は削除せず同じ幅の空白を `display' で
-被せて隠す（文字数を変えないので、行番号とエントリの対応を持つ
-`imenu-list--line-entries' がずれない）。結果として ## は2桁分の
-字下げになり、そのまま階層のインデントとして使える。"
+*Ilist* バッファ上で走る。# 記号は削除せず `display' プロパティで
+伸縮空白を被せて隠す（文字数を変えないので、行番号とエントリの対応を持つ
+`imenu-list--line-entries' がずれない）。字下げ幅は
+`my/imenu-list-heading-indent' を参照。"
   (when (and (boundp 'imenu-list--displayed-buffer)
              (buffer-live-p imenu-list--displayed-buffer)
              (memq (buffer-local-value 'major-mode imenu-list--displayed-buffer)
@@ -494,13 +497,15 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
     (let ((inhibit-read-only t))
       (save-excursion
         (goto-char (point-min))
-        (while (re-search-forward "^ *\\(#+\\) " nil t)
+        (while (re-search-forward "^ *\\(#+ \\)" nil t)
           (let* ((beg (match-beginning 1))
                  (end (match-end 1))
-                 (level (min 6 (length (match-string 1)))))
-            ;; display 文字列の幅は元の文字数と揃える必要がないので、
-            ;; 1レベルにつき2桁の字下げにする。
-            (put-text-property beg end 'display (make-string (* 2 level) ?\s))
+                 (level (min 6 (- (- end beg) 1))))
+            ;; display は元の文字数と幅を揃える必要がないので、# と直後の空白を
+            ;; まとめて伸縮空白 1個に置き換える。(space :width N) の N は文字幅の
+            ;; 倍数で小数も取れるため、1桁未満の細かい字下げにできる。
+            (put-text-property beg end 'display
+                               `(space :width ,(* level my/imenu-list-heading-indent)))
             (put-text-property (line-beginning-position) (line-end-position)
                                'face
                                (intern (format "my/imenu-list-heading-%d" level)))))))))
