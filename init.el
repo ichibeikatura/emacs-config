@@ -500,20 +500,29 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
         (while (re-search-forward "^ *\\(#+ \\)" nil t)
           (let* ((beg (match-beginning 1))
                  (end (match-end 1))
-                 (level (min 6 (- (- end beg) 1))))
+                 (bol (line-beginning-position))
+                 (eol (line-end-position))
+                 (level (min 6 (- (- end beg) 1)))
+                 (face (intern (format "my/imenu-list-heading-%d" level))))
+            ;; エントリ名は markdown-ts--imenu-heading-name-function が
+            ;; `treesit-node-text' で取った本文バッファの文字列そのもので、
+            ;; markdown-ts-heading-N（:height 1.5 等）や hide-markup の
+            ;; invisible といったテキストプロパティを引きずっている。放置すると
+            ;; サイドバーの行まで拡大されるので、見た目に関わる分を先に落とす。
+            (remove-list-of-text-properties bol eol '(face display invisible))
             ;; display は元の文字数と幅を揃える必要がないので、# と直後の空白を
             ;; まとめて伸縮空白 1個に置き換える。(space :width N) の N は文字幅の
             ;; 倍数で小数も取れるため、1桁未満の細かい字下げにできる。
             (put-text-property beg end 'display
                                `(space :width ,(* level my/imenu-list-heading-indent)))
-            ;; 色はテキストプロパティでは付けられない。imenu-list は
+            (put-text-property bol eol 'face face)
+            ;; テキストプロパティだけでは色が付かない。imenu-list は
             ;; `insert-button'（＝`make-button'）を使っており、これはテキスト
             ;; プロパティではなくオーバーレイのボタンを作る。オーバーレイの
             ;; face はテキストプロパティの face より優先されるため、
-            ;; put-text-property では上書きできずボタン側の色が残る。
+            ;; ボタン側も同じフェイスに差し替える必要がある。
             (when-let* ((button (button-at beg)))
-              (button-put button 'face
-                          (intern (format "my/imenu-list-heading-%d" level))))))))))
+              (button-put button 'face face))))))))
 
 (use-package imenu-list
   :ensure t
