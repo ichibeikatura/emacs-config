@@ -625,7 +625,43 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (keymap-set markdown-ts-mode-map "C-c C-i" #'markdown-ts-toggle-inline-images)
   (keymap-set markdown-ts-mode-map "C-c v" #'my/markdown-view)
   ;; view 側は special-mode-map 由来の単キー（n/p/f/b/q）をそのまま使う
-  (keymap-set markdown-ts-view-mode-map "e" #'my/markdown-edit))
+  (keymap-set markdown-ts-view-mode-map "e" #'my/markdown-edit)
+
+  ;; Emacs 32.0.50 同梱 markdown-ts-mode.el のバグ回避（本家が直したら削除）。
+  ;; 裸の URL をボタン化するとき、URL 正規表現でマッチしたのか
+  ;; メール正規表現でマッチしたのかを `(eq uri-start 0)' で判定しており、
+  ;; uri-start は match-beginning のバッファ位置（最小 1）なので常に偽。
+  ;; その結果すべての裸 URL に "mailto:" が前置され、RET を押すと
+  ;; browse-url ではなく compose-mail が走って *unsent mail to https* が開く。
+  ;; 判定を「どちらの正規表現でマッチしたか」に直しただけの再定義。
+  (defun markdown-ts--fontify-bare-uri (start end)
+    "Fontify bare URL or email URI between START and END.
+Skip matches already inside tree-sitter link or autolink nodes."
+    (dolist (re (list markdown-ts--bare-url-regexp
+                      markdown-ts--bare-email-uri-regexp))
+      (goto-char start)
+      (while (re-search-forward re end t)
+        (let* ((uri-start (match-beginning 0))
+               (uri-end (match-end 0))
+               (uri (match-string 0))
+               (node (treesit-node-at uri-start 'markdown-inline))
+               (parent (and node (treesit-node-parent node)))
+               (parent-type (and parent (treesit-node-type parent))))
+          (unless (or (member parent-type
+                              '("inline_link" "full_reference_link"
+                                "collapsed_reference_link" "shortcut_link"
+                                "image" "uri_autolink" "email_autolink"
+                                "link_destination"))
+                      (member (and node (treesit-node-type node))
+                              '("uri_autolink" "email_autolink"
+                                "link_destination" "code_span"
+                                "code_fence_content" "info_string"))
+                      (get-text-property uri-start 'button))
+            (markdown-ts--make-link-button
+             uri-start uri-end
+             (if (eq re markdown-ts--bare-url-regexp)
+                 uri
+               (concat "mailto:" uri)))))))))
 
 (use-package uniquify
   :custom
