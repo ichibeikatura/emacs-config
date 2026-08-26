@@ -24,7 +24,11 @@
 
 ;; パッケージ管理無効化（Straight/Elpaca用）
 (setq package-enable-at-startup nil)
-(setq site-run-file nil) ;; default.el 等を読まない
+;; site-start.el は Emacs 31 から early-init.el より前に読まれるようになったため、
+;; ここで site-run-file を nil にしても site-start.el の読み込みはもう止まらない
+;; (止めるなら起動オプション --no-site-file)。今のビルドには site-start.el 自体が
+;; 無いので実害は無く、default.el (init.el の後に読まれる) の抑止として残す。
+(setq site-run-file nil)
 
 
 ;; GC最適化

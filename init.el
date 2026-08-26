@@ -138,11 +138,12 @@
    )
 
 ;;; load-path
-(defvar my-site-lisp-dir (locate-user-emacs-file "site-lisp"))
-(when (file-directory-p my-site-lisp-dir)
-  (add-to-list 'load-path my-site-lisp-dir)
-  (let ((default-directory my-site-lisp-dir))
-    (normal-top-level-add-subdirs-to-load-path)))
+;; 個人用 Lisp は user-lisp/ に置く。Emacs 31 の User Lisp Directory 機能
+;; (startup.el の prepare-user-lisp) が early-init.el と init.el の間で走り、
+;; 再帰的に load-path 追加・バイトコンパイル・autoload 収集
+;; (.user-lisp-autoloads.el を user-lisp/ 直下に生成) まで面倒を見る。
+;; コンパイルとスクレイプはタイムスタンプ差分のときだけ。
+;; 手動で載せ直したいときは M-x prepare-user-lisp（C-u 付きで全再生成）。
 
 ;;; macOS 固有設定
 (when (eq system-type 'darwin)
@@ -159,6 +160,16 @@
 
 ;;; 表示・UI
 (blink-cursor-mode -1)
+;; hl-line を出さないバッファ (Emacs 31 の global-hl-line-buffers)。
+;; 既定値 (minibuffer / cursor-face-highlight-mode / 先頭が空白のバッファ) に
+;; *Ilist* と dirvish の作業バッファを足す。dirvish のファイルプレビューは
+;; 実ファイルを開いた普通のバッファなので、名前では除外できない。
+(setq global-hl-line-buffers
+      '(not (or (lambda (b) (buffer-local-value 'cursor-face-highlight-mode b))
+                (lambda (b) (string-match-p "\\` " (buffer-name b)))
+                minibufferp
+                "\\`\\*Ilist\\*\\'"
+                "\\`\\*dirvish-")))
 (global-hl-line-mode 1)
 (fringe-mode 0)
 (set-display-table-slot standard-display-table 'wrap ?\ )
@@ -305,7 +316,11 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   :ensure nil
   :custom
   (tab-bar-new-tab-choice "*scratch*")
-  (tab-bar-new-tab-to 'rightmost))
+  (tab-bar-new-tab-to 'rightmost)
+  ;; tab-bar 既定のキーを作らせない (Emacs 31)。対象は C-TAB / C-S-TAB と
+  ;; tab-bar-select-tab-modifiers 由来の数字キーだけで、C-x t 系の prefix は
+  ;; グローバルマップ側なので残る。タブ移動は M-{ / M-} を自前で当てている。
+  (tab-bar-define-keys nil))
 
 (use-package vim-tab-bar
   :ensure t
@@ -555,6 +570,23 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (advice-add 'imenu-list-insert-entries :after
               #'my/imenu-list-fontify-markdown-headings))
 
+;;; Tree-sitter
+;; treesit.el は本体にプリロード済みなので :custom の :set がそのまま効く。
+(use-package treesit
+  :ensure nil
+  :custom
+  ;; markdown-ts-mode-maybe は「グラマが両方揃っている」か「treesit-enabled-modes
+  ;; に markdown-ts-mode が入っている」ときだけ markdown-ts-mode にし、
+  ;; それ以外は黙って text-mode に落ちる。ここに書いておくと、グラマ未導入の
+  ;; 環境でも text-mode に落ちずに導入を尋ねてくれる。
+  ;; t（全 ts-mode を有効）にはしない。使っていない言語まで major-mode-remap-alist
+  ;; に載り、開くたびにグラマ導入を聞かれるため。
+  (treesit-enabled-modes '(markdown-ts-mode))
+  ;; グラマ未導入時は確認してから導入する（既定値だが明示）。
+  ;; インストール先は ~/.emacs.d/tree-sitter/。always にすると無確認で
+  ;; git clone とコンパイルが走る。
+  (treesit-auto-install-grammar 'ask))
+
 ;;; Markdown
 ;; Emacs 32 同梱の markdown-ts-mode を使う。.md/.markdown/.mdx の
 ;; auto-mode-alist 登録は markdown-ts-mode 側の autoload で済んでいる。
@@ -603,8 +635,12 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   "Markdown バッファの行間を広げ、段落の切れ目を見やすくする。
 見出しは色とサイズで区別する方針（`modus-themes-headings' 参照）なので、
 段落そのものの分離はここで行間を足して稼ぐ。バッファローカルなので
-他のモードの表示には影響しない。"
-  (setq-local line-spacing 0.25))
+他のモードの表示には影響しない。
+
+Emacs 31 から line-spacing が (ABOVE . BELOW) の cons を取れるので、
+同じ 0.25 を上下に振り分けて文字を行の中央に置く。下だけに付けると
+行の高さが増えた分だけ文字が上に寄り、見出しの上下の余白がずれる。"
+  (setq-local line-spacing '(0.125 . 0.125)))
 
 (use-package markdown-ts-mode
   :defer t
@@ -688,6 +724,10 @@ Skip matches already inside tree-sitter link or autolink nodes."
   :hook (after-init . savehist-mode))
 
 (use-package saveplace
+  :custom
+  ;; 5分ごとに places を書き出す (Emacs 31)。既定の nil はモード終了時のみで、
+  ;; クラッシュや強制終了で位置を丸ごと失う。
+  (save-place-autosave-interval 300)
   :hook (after-init . save-place-mode))
 
 ;;; Auto Revert
@@ -1162,13 +1202,15 @@ Skip matches already inside tree-sitter link or autolink nodes."
     (insert (format-time-string "%Y-%m-%d %H:%M\n" (current-time)))
     (insert "#title: ")))
 
-;; 対象は site-lisp/ のみ。init.el は起動時にソースが読まれるため .eln は
+;; 対象は user-lisp/ のみ。バイトコンパイルは prepare-user-lisp が見るが、
+;; ネイティブコンパイルまではしないのでここで明示的に走らせる。
+;; init.el は起動時にソースが読まれるため .eln は
 ;; 使われない上、コンパイル用サブプロセスでは elpaca-use-package-mode が
 ;; 無効なので use-package の :ensure が compile 時に素の package.el で実行され
 ;; elpa/ が生成される副作用がある。elpaca/builds/ は elpaca がコンパイル済み。
 (defun my/native-comp-packages ()
   (interactive)
-  (let ((dir (locate-user-emacs-file "site-lisp/")))
+  (let ((dir (locate-user-emacs-file "user-lisp/")))
     (when (file-directory-p dir)
       (native-compile-async dir t))))
 

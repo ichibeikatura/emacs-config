@@ -18,5 +18,5 @@ etc/
 /.zellij-send/
 
 # 個人用
-site-lisp/
+user-lisp/
 local/
