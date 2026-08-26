@@ -24,6 +24,14 @@
 
 ;; パッケージ管理無効化（Straight/Elpaca用）
 (setq package-enable-at-startup nil)
+
+;; user-lisp/ の自動スクレイプを止める（この変数は early-init でしか効かない）。
+;; nil でも startup.el は prepare-user-lisp を JUST-ACTIVATE 付きで呼ぶので、
+;; load-path 追加と既存 .user-lisp-autoloads.el の読み込みは今まで通り行われる。
+;; 止まるのはバイトコンパイルと autoload の再収集だけ。中身は lookup 一式で
+;; ほぼ更新が無いのに、毎起動 62 ファイルのスクレイプ確認で 0.15 秒使っていた。
+;; user-lisp/ に何か足したり直したりしたら M-x prepare-user-lisp（C-u 付きで全再生成）。
+(setq user-lisp-auto-scrape nil)
 ;; site-start.el は Emacs 31 から early-init.el より前に読まれるようになったため、
 ;; ここで site-run-file を nil にしても site-start.el の読み込みはもう止まらない
 ;; (止めるなら起動オプション --no-site-file)。今のビルドには site-start.el 自体が
