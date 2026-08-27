@@ -119,6 +119,8 @@
   :bind
    ("M-{" . tab-previous)
    ("M-}" . tab-next)
+   ("C-<tab>" . tab-next)
+   ("C-S-<tab>" . tab-previous)
    ("C-t" . switch-to-next-buffer)
    ("C-M-t" . switch-to-prev-buffer)
    ("C-x C-b" . bs-show)
@@ -319,7 +321,8 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (tab-bar-new-tab-to 'rightmost)
   ;; tab-bar 既定のキーを作らせない (Emacs 31)。対象は C-TAB / C-S-TAB と
   ;; tab-bar-select-tab-modifiers 由来の数字キーだけで、C-x t 系の prefix は
-  ;; グローバルマップ側なので残る。タブ移動は M-{ / M-} を自前で当てている。
+  ;; グローバルマップ側なので残る。タブ移動は M-{ / M-} と C-TAB / C-S-TAB を
+  ;; グローバルに自前で当てている。
   (tab-bar-define-keys nil))
 
 (use-package vim-tab-bar
