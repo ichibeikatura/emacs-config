@@ -654,6 +654,13 @@ Emacs 31 から line-spacing が (ABOVE . BELOW) の cons を取れるので、
   ;; 旧 create-image advice（:scale 0.4）の代わり。ウィンドウ幅で頭打ちにする
   (markdown-ts-image-max-width 'window)
   (markdown-ts-fontify-code-blocks-natively t)
+  ;; markdown-ts-convert / -convert-file の書き出し設定。markdown-ts-mode-x.el
+  ;; 側は autoload 済みなので require は不要（Emacs 32 の loaddefs.el に入っている）。
+  ;; nil のままだと形式とコンバータの両方を聞かれるので pandoc に固定する。
+  (markdown-ts-default-converter '(html . pandoc))
+  ;; C-u M-x markdown-ts-convert で生成物を表示するときの開き方。
+  ;; 既定の eww ではなく OS 既定ブラウザ（このマシンでは Safari）に投げる。
+  (markdown-ts-convert-display-function #'browse-url-of-file)
   :hook ((markdown-ts-mode markdown-ts-view-mode) . my/markdown-readable-spacing)
   :config
   ;; 表示用に使うのでデフォルトのキーバインドは空にする。
