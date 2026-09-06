@@ -52,8 +52,10 @@
 
 ;; Native Compilation 設定 (Emacs 28+)
 (when (featurep 'native-compile)
-  (setq native-comp-async-report-warnings-errors 'silent)
-  (setq native-compile-prune-cache t)) ;; キャッシュの定期掃除
+  (setq native-comp-async-report-warnings-errors 'silent))
+;; 旧ハッシュの eln-cache 掃除は M-x native-compile-prune-cache を手で。
+;; native-compile-prune-cache は変数ではなくコマンドなので setq は無効
+;; (Emacs 32 で boundp は nil)。再ビルドでハッシュが変わったときだけ要る。
 
 
 ;; 起動時の表示抑制
