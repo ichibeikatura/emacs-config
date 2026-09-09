@@ -202,24 +202,82 @@
 
 ;;; 文字コード・濁点分離対策
 
-(defun my/normalize-nfc-buffer ()
-  "バッファ全体をNFC正規化（modified状態とリージョンは維持）。
-read-only やユニバイト（バイナリ等）のバッファでは何もしない。
-find-file-hook でエラーになるとファイルオープン自体を壊すため。
+(defun my/nfc-compose-string (string)
+  "STRING を NFC にし、元文字のテキストプロパティを引き継ぐ。
+合成文字では基底文字の属性を優先し、結合文字だけの属性も引き継ぐ。"
+  (let ((normalized (ucs-normalize-NFC-string (substring-no-properties string))))
+    (if (equal string normalized)
+        string
+      ;; NFD に分解した文字を手掛かりに、並べ替え・合成後の属性を対応付ける。
+      ;; 同じ文字が複数ある場合も元の出現順に取り出す。
+      (let ((properties (make-hash-table :test #'eql)))
+        (dotimes (i (length string))
+          (dolist (char (string-to-list
+                        (ucs-normalize-NFD-string (char-to-string (aref string i)))))
+            (push (text-properties-at i string) (gethash char properties))))
+        (maphash (lambda (char values)
+                   (puthash char (nreverse values) properties))
+                 properties)
+        (dotimes (i (length normalized))
+          (let (props)
+            (dolist (char (string-to-list
+                          (ucs-normalize-NFD-string (char-to-string (aref normalized i)))))
+              (let ((source-props (pop (gethash char properties))))
+                (while source-props
+                  (let ((key (pop source-props))
+                        (value (pop source-props)))
+                    (unless (plist-member props key)
+                      (setq props (plist-put props key value)))))))
+            (set-text-properties i (1+ i) props normalized))))
+      normalized)))
 
-deactivate-mark の退避が要る: バッファを書き換えると Emacs がこれを t にし、
-次のコマンドループで選択が解除される。super-save が1秒アイドルで保存するので、
-before-save-hook 経由だと選択した直後に必ずリージョンが消えてしまう。"
+(defun my/normalize-nfc-region (beg end)
+  "BEG から END を、位置と文字属性を保ちながら NFC 正規化する。
+読み取り専用のバッファ・文字とユニバイトのバッファは変更しない。"
+  (when (and (not buffer-read-only) enable-multibyte-characters)
+    (require 'ucs-normalize)
+    (let ((deactivate-mark deactivate-mark)
+          (case-fold-search nil))
+      (save-match-data
+        (save-excursion
+          (save-restriction
+            (narrow-to-region beg end)
+            (goto-char (point-min))
+            ;; Emacs 本体と同じ候補範囲だけを処理し、通常の本文は触らない。
+            (while (re-search-forward ucs-normalize-nfc-quick-check-regexp nil t)
+              (let* ((starter (char-after (match-beginning 0)))
+                     (start (match-beginning 0))
+                     (from (if (or (= start (point-min))
+                                   (and (= 0 (ucs-normalize-ccc starter))
+                                        (not (memq starter ucs-normalize-combining-chars))))
+                               start
+                             (1- start)))
+                     (to (if (looking-at ucs-normalize-combining-chars-regexp)
+                             (match-end 0)
+                           (1+ start))))
+                (if (text-property-not-all from to 'read-only nil)
+                    (goto-char to)
+                  (let* ((source (buffer-substring from to))
+                         (normalized (my/nfc-compose-string source)))
+                    (unless (equal source normalized)
+                      ;; 差分置換で point・mark・その他のマーカーを追従させる。
+                      (replace-region-contents from to normalized))
+                    (goto-char (+ from (length normalized)))))))))))))
+
+(defun my/normalize-nfc-string (string)
+  "STRING を文字属性を保ちながら NFC 正規化する。"
+  (with-temp-buffer
+    (insert string)
+    (my/normalize-nfc-region (point-min) (point-max))
+    (buffer-string)))
+
+(defun my/normalize-nfc-buffer ()
+  "バッファ全体を NFC 正規化し、カーソルと選択範囲を保つ。
+内容が変わった場合は未保存の変更として扱う。"
   (interactive)
-  (when (and (not buffer-read-only)
-             enable-multibyte-characters)
-    (let ((modified (buffer-modified-p))
-          (deactivated deactivate-mark)
-          (p (point)))
-      (ucs-normalize-NFC-region (point-min) (point-max))
-      (goto-char (min p (point-max)))
-      (set-buffer-modified-p modified)
-      (setq deactivate-mark deactivated))))
+  (save-restriction
+    (widen)
+    (my/normalize-nfc-region (point-min) (point-max))))
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
@@ -254,15 +312,15 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
   (add-hook 'after-make-frame-functions #'my--apply-font-to-new-frame))
 
 ;; yank系の集約: insert-for-yank は yank / yank-pop / マウス貼り付けが全て通る
-;; 漏斗。挿入直後の領域を正規化するのでテキストプロパティを保持できる。
+;; 漏斗。挿入直後の領域を、位置とテキストプロパティを保って正規化する。
 (define-advice insert-for-yank (:around (orig string) nfc-normalize)
   (let ((beg (point)))
     (funcall orig string)
-    (ucs-normalize-NFC-region beg (point))))
+    (my/normalize-nfc-region beg (point))))
 
-;; 案2: クリップボード源流を正規化し、kill-ring へ入る時点でNFCにする。
+;; クリップボードも属性を保持したまま、kill-ring へ入る時点で NFC にする。
 (define-advice gui-get-selection (:filter-return (s) nfc-normalize)
-  (if (stringp s) (ucs-normalize-NFC-string s) s))
+  (if (stringp s) (my/normalize-nfc-string s) s))
 
 (defun my--apply-font-now ()
   "現在のフレームにフォントを適用"
@@ -273,9 +331,14 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 (defun my/change-font ()
   "対話的にフォントを変更"
   (interactive)
-  (let ((choice (completing-read "Font: " (mapcar #'car my-font-alist))))
-    (setq my-current-font-name (cdr (assoc choice my-font-alist))
-          my-current-font-size (read-number "Size: " my-current-font-size))
+  (let* ((choice (completing-read "Font: " my-font-alist nil t nil nil
+                                  (or (car (rassoc my-current-font-name my-font-alist))
+                                      (caar my-font-alist))))
+         (font (or (cdr (assoc choice my-font-alist))
+                   (user-error "登録済みのフォントを選択してください")))
+         (size (read-number "Size: " my-current-font-size)))
+    (setq my-current-font-name font
+          my-current-font-size size)
     (my-apply-font-config)
     (my--apply-font-now)))
 
@@ -595,27 +658,32 @@ before-save-hook 経由だと選択した直後に必ずリージョンが消え
 ;; auto-mode-alist 登録は markdown-ts-mode 側の autoload で済んでいる。
 
 (defun my/markdown-paste-image-macos ()
+  "クリップボードの画像を一意なファイル名で保存し、リンクを挿入する。"
   (interactive)
+  (barf-if-buffer-read-only)
   (unless (eq system-type 'darwin)
     (user-error "This function is for macOS only"))
   (unless (executable-find "pngpaste")
     (user-error "pngpaste is not installed"))
 
-  (let* ((img-name (format-time-string "%Y%m%d_%H%M%S.png"))
-         (img-dir (expand-file-name "images/" default-directory))
-         (img-path (expand-file-name img-name img-dir))
-         (rel-path (file-relative-name img-path default-directory)))
-
-    (unless (file-exists-p img-dir)
-      (make-directory img-dir t))
-
-    (if (zerop (call-process "pngpaste" nil nil nil img-path))
-        (progn
-          ;; alt テキストを空にしない: markdown-ts-hide-markup が有効だと
-          ;; ![]() は記号が全て invisible になり、行に何も残らず消えたように見える。
-          (insert (format "![%s](%s)" (file-name-base img-name) rel-path))
-          (message "Saved: %s" rel-path))
-      (user-error "pngpaste failed; ensure an image is in the clipboard"))))
+  (let ((img-dir (expand-file-name "images/" default-directory)))
+    (make-directory img-dir t)
+    ;; 同秒の貼り付けや別 Emacs からの保存とも衝突しないよう、先に確保する。
+    (let* ((img-path (make-temp-file
+                      (expand-file-name (format-time-string "%Y%m%d_%H%M%S-") img-dir)
+                      nil ".png"))
+           (rel-path (file-relative-name img-path default-directory))
+           inserted)
+      (unwind-protect
+          (if (zerop (call-process "pngpaste" nil nil nil img-path))
+              (progn
+                ;; 装飾を隠していても画像リンクが見えるよう、alt は空にしない。
+                (insert (format "![%s](%s)" (file-name-base img-path) rel-path))
+                (setq inserted t)
+                (message "Saved: %s" rel-path))
+            (user-error "pngpaste failed; ensure an image is in the clipboard"))
+        (unless inserted
+          (delete-file img-path))))))
 
 (defun my/markdown-view ()
   "現在のバッファを読み取り専用の Markdown ビューにする。"
@@ -955,9 +1023,9 @@ Skip matches already inside tree-sitter link or autolink nodes."
       (funcall add-opt dic-name nil nil))))
 
 ;;; DDSKK
-(use-package ddskk
-  :ensure (:version (lambda (_) "17.2"))
-;  :ensure t
+(use-package skk
+  ;; パッケージ名は ddskk、skk-mode の autoload が読む機能名は skk。
+  :ensure (ddskk :version (lambda (_) "17.2"))
   :init
   (setq skk-user-directory (expand-file-name "~/.skk.d"))
   :bind
@@ -1187,19 +1255,26 @@ Skip matches already inside tree-sitter link or autolink nodes."
 
 (defun my/insert-diary-entry ()
   (interactive)
-  (let* ((input (read-string "日付 (YYYYMMDD): "))
-         (date (format "%s年%s月%s日"
-                       (substring input 0 4)
-                       (substring input 4 6)
-                       (substring input 6 8)))
-         (source (read-string "出典: "))
-         (author (if (string-match "^\\([^ 　]+\\)" source)
-                     (match-string 1 source)
-                   "")))
-    (insert (format "%s | %s\n" date author))
-    (let ((body-pos (point)))
-      (insert (format "\n出典:%s\n\n----\n" source))
-      (goto-char body-pos))))
+  (let ((input (read-string "日付 (YYYYMMDD): ")))
+    (require 'calendar)
+    (unless (and (string-match-p "\\`[0-9]\\{8\\}\\'" input)
+                 (calendar-date-is-valid-p
+                  (list (string-to-number (substring input 4 6))
+                        (string-to-number (substring input 6 8))
+                        (string-to-number (substring input 0 4)))))
+      (user-error "実在する日付を YYYYMMDD の8桁で入力してください"))
+    (let* ((date (format "%s年%s月%s日"
+                         (substring input 0 4)
+                         (substring input 4 6)
+                         (substring input 6 8)))
+           (source (read-string "出典: "))
+           (author (if (string-match "^\\([^ 　]+\\)" source)
+                       (match-string 1 source)
+                     "")))
+      (insert (format "%s | %s\n" date author))
+      (let ((body-pos (point)))
+        (insert (format "\n出典:%s\n\n----\n" source))
+        (goto-char body-pos)))))
 
 (defvar my/junk-file-directory (expand-file-name "~/My Drive/memo/")
   "Junkファイルの保存ディレクトリ")
