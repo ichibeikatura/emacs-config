@@ -1131,6 +1131,22 @@ Skip matches already inside tree-sitter link or autolink nodes."
 
 (add-hook 'minibuffer-setup-hook #'my/skk-minibuffer-inherit-mode)
 
+;; Emacs 32 の文字幅測定は work-buffer に文字列・プロパティを入れ、最後に
+;; erase-buffer する。この内部編集が deactivate-mark を立て、doom-modeline の
+;; 幅測定を伴う C-n/C-p で、未編集バッファの選択まで解除されることがある。
+;; work-buffer--release の kill-all-local-variables 'reset の不具合を回避する。
+;; 測定は本文編集ではないので、測定中だけ変更フック（選択解除を含む）を抑止。
+;; deactivate-mark は buffer-local のため、呼び出し元での let 束縛だけでは防げない。
+(defun my/pixel-measurement-keep-mark (fn &rest args)
+  "FN による文字幅測定の内部編集で、操作中の選択を解除させない。"
+  (let ((inhibit-modification-hooks t))
+    (apply fn args)))
+
+(with-eval-after-load 'subr-x
+  (when (fboundp 'work-buffer--prepare-pixelwise)
+    (dolist (fn '(string-pixel-width truncate-string-pixelwise))
+      (advice-add fn :around #'my/pixel-measurement-keep-mark))))
+
 ;; Doom Modeline
 (use-package doom-modeline
   :ensure t

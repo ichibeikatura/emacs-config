@@ -4,6 +4,7 @@
 (require 'ert)
 (require 'cl-lib)
 (require 'ucs-normalize)
+(require 'subr-x)
 (setq native-comp-jit-compilation nil
       native-comp-enable-subr-trampolines nil)
 
@@ -13,6 +14,7 @@
       (functions '(my/nfc-compose-string my/normalize-nfc-region
                    my/normalize-nfc-string my/normalize-nfc-buffer
                    my/save-buffer-keep-mark my/change-font
+                   my/pixel-measurement-keep-mark
                    my/markdown-paste-image-macos my/insert-diary-entry)))
   (with-temp-buffer
     (insert-file-contents init-file)
@@ -29,6 +31,29 @@
                            (memq (cadr form) '(insert-for-yank gui-get-selection))))
               (eval form t))))
       (end-of-file nil))))
+
+(ert-deftest init-pixel-measurement-does-not-request-mark-deactivation ()
+  "文字幅測定の結果を変えず、内部編集による選択解除要求だけを防ぐ。"
+  (skip-unless (fboundp 'work-buffer--prepare-pixelwise))
+  (let* ((sample (propertize "selection 日本語" 'face 'default))
+         (width (string-pixel-width sample))
+         (limit (max 1 (/ width 2)))
+         (truncated (truncate-string-pixelwise sample limit))
+         changes
+         (watcher (lambda (_symbol value operation _where)
+                    (when (and value (eq operation 'set))
+                      (push (buffer-name) changes)))))
+    (unwind-protect
+        (progn
+          (add-variable-watcher 'deactivate-mark watcher)
+          (should (= width (my/pixel-measurement-keep-mark
+                            #'string-pixel-width sample)))
+          (should (equal-including-properties
+                   truncated
+                   (my/pixel-measurement-keep-mark
+                    #'truncate-string-pixelwise sample limit)))
+          (should-not changes))
+      (remove-variable-watcher 'deactivate-mark watcher))))
 
 (ert-deftest init-nfc-preserves-selection-in-both-directions ()
   (dolist (positions '((3 1 2 1) (1 3 1 2) (4 3 3 2) (3 4 2 3)))
