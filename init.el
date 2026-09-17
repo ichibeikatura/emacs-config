@@ -121,8 +121,6 @@
    ("M-}" . tab-next)
    ("C-<tab>" . tab-next)
    ("C-S-<tab>" . tab-previous)
-   ("C-t" . switch-to-next-buffer)
-   ("C-M-t" . switch-to-prev-buffer)
    ("C-x C-b" . bs-show)
    ("C-c C-b" . ibuffer)
    ("C-c C-o" . revert-buffer-quick)
@@ -137,6 +135,12 @@
    ("C-\\" . dabbrev-expand)
    ("C-q" . my/epub-convert)
    ("C-c d" . my/insert-diary-entry)
+  ;; バッファ巡回はどのモードでも効かせたい。:bind だと dired (C-t は
+  ;; image-dired のプレフィックス) や org (C-M-t は org-transpose-element) の
+  ;; モードマップに負けるので、override-global-map に置いて優先させる
+  :bind*
+   ("C-t" . switch-to-next-buffer)
+   ("C-M-t" . switch-to-prev-buffer)
    )
 
 ;;; load-path
