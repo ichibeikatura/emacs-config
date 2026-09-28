@@ -758,11 +758,19 @@ Emacs 31 から line-spacing が (ABOVE . BELOW) の cons を取れるので、
 
 ;; *scratch* を remember-notes のファイル (no-littering で var/remember/data)
 ;; に置き換えて、中身をセッションをまたいで残す。保存は super-save 任せ。
+(defun my/remember-notes-home-directory ()
+  "ノートバッファの作業ディレクトリをホームにする。
+ファイルを開いたバッファなので既定では var/remember/ になり、起動直後の
+C-x C-f などがそこから始まってしまう。保存先は `buffer-file-name' の
+絶対パスで決まるので、ここを変えても影響しない。"
+  (setq default-directory (expand-file-name "~/")))
+
 (use-package remember
   :ensure nil
   :custom
   (remember-notes-buffer-name "*scratch*")
-  (initial-buffer-choice #'remember-notes))
+  (initial-buffer-choice #'remember-notes)
+  :hook (remember-notes-mode . my/remember-notes-home-directory))
 
 ;;; So Long
 ;(use-package so-long
