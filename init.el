@@ -160,6 +160,11 @@
   ;; 走るため、ここでは間に合わない）
   )
 
+;; 起動時の "For information about GNU Emacs..." を出さない。startup.el は
+;; user-init-file (= init.el) の中にこの setq がそのままの形で書かれているかを
+;; 検索して判定するので、early-init.el や他の式の中に置いても効かない。
+(setq inhibit-startup-echo-area-message "mck")
+
 (with-eval-after-load 'warnings
   (add-to-list 'warning-suppress-log-types '(files missing-lexbind-cookie))
   (add-to-list 'warning-suppress-types '(files missing-lexbind-cookie)))
@@ -285,6 +290,17 @@
 (add-hook 'find-file-hook #'my/normalize-nfc-buffer)
 (add-hook 'before-save-hook #'my/normalize-nfc-buffer)
 
+;; yank系の集約: insert-for-yank は yank / yank-pop / マウス貼り付けが全て通る
+;; 漏斗。挿入直後の領域を、位置とテキストプロパティを保って正規化する。
+(define-advice insert-for-yank (:around (orig string) nfc-normalize)
+  (let ((beg (point)))
+    (funcall orig string)
+    (my/normalize-nfc-region beg (point))))
+
+;; クリップボードも属性を保持したまま、kill-ring へ入る時点で NFC にする。
+(define-advice gui-get-selection (:filter-return (s) nfc-normalize)
+  (if (stringp s) (my/normalize-nfc-string s) s))
+
 ;; 保存中のバッファ書き換えでリージョンが消えるのを防ぐ。
 ;; text-mode 派生（markdown-ts-mode 等）は mode-require-final-newline 経由で
 ;; require-final-newline が t になるため、末尾が改行でないバッファを保存すると
@@ -314,17 +330,6 @@
 (defun my-apply-font-config ()
   ;; 名前付き関数なので add-hook が重複登録を防ぐ（多重呼び出ししても安全）
   (add-hook 'after-make-frame-functions #'my--apply-font-to-new-frame))
-
-;; yank系の集約: insert-for-yank は yank / yank-pop / マウス貼り付けが全て通る
-;; 漏斗。挿入直後の領域を、位置とテキストプロパティを保って正規化する。
-(define-advice insert-for-yank (:around (orig string) nfc-normalize)
-  (let ((beg (point)))
-    (funcall orig string)
-    (my/normalize-nfc-region beg (point))))
-
-;; クリップボードも属性を保持したまま、kill-ring へ入る時点で NFC にする。
-(define-advice gui-get-selection (:filter-return (s) nfc-normalize)
-  (if (stringp s) (my/normalize-nfc-string s) s))
 
 (defun my--apply-font-now ()
   "現在のフレームにフォントを適用"
@@ -410,7 +415,8 @@
   (vertico-count 18)
   (vertico-resize nil)
   (vertico-cycle t)
-  (vertico-sort-function #'vertico-sort-history-alpha)
+  ;; 並び順は vertico-prescient-mode が vertico-sort-function を
+  ;; prescient-completion-sort に差し替えて決める（ここで設定しても効かない）
   :init
   (vertico-mode 1)
   :config
@@ -458,15 +464,7 @@
   :hook
   (marginalia-mode . nerd-icons-completion-marginalia-setup)
   :init
-  (nerd-icons-completion-mode 1)
-  :config
-  ;; killed buffer 候補で with-current-buffer が
-  ;; "Selecting deleted buffer" になる上流バグへのガード
-  (cl-defmethod nerd-icons-completion-get-icon :around (cand (_cat (eql buffer)))
-    (let ((buf (get-buffer cand)))
-      (if (and buf (not (buffer-live-p buf)))
-          ""
-        (cl-call-next-method)))))
+  (nerd-icons-completion-mode 1))
 
 ;;; テーマ
 ;; Emacs 同梱の modus-themes（5.3.0）を使う。既定は modus-operandi-tinted。
@@ -743,43 +741,7 @@ Emacs 31 から line-spacing が (ABOVE . BELOW) の cons を取れるので、
   (keymap-set markdown-ts-mode-map "C-c C-i" #'markdown-ts-toggle-inline-images)
   (keymap-set markdown-ts-mode-map "C-c v" #'my/markdown-view)
   ;; view 側は special-mode-map 由来の単キー（n/p/f/b/q）をそのまま使う
-  (keymap-set markdown-ts-view-mode-map "e" #'my/markdown-edit)
-
-  ;; Emacs 32.0.50 同梱 markdown-ts-mode.el のバグ回避（本家が直したら削除）。
-  ;; 裸の URL をボタン化するとき、URL 正規表現でマッチしたのか
-  ;; メール正規表現でマッチしたのかを `(eq uri-start 0)' で判定しており、
-  ;; uri-start は match-beginning のバッファ位置（最小 1）なので常に偽。
-  ;; その結果すべての裸 URL に "mailto:" が前置され、RET を押すと
-  ;; browse-url ではなく compose-mail が走って *unsent mail to https* が開く。
-  ;; 判定を「どちらの正規表現でマッチしたか」に直しただけの再定義。
-  (defun markdown-ts--fontify-bare-uri (start end)
-    "Fontify bare URL or email URI between START and END.
-Skip matches already inside tree-sitter link or autolink nodes."
-    (dolist (re (list markdown-ts--bare-url-regexp
-                      markdown-ts--bare-email-uri-regexp))
-      (goto-char start)
-      (while (re-search-forward re end t)
-        (let* ((uri-start (match-beginning 0))
-               (uri-end (match-end 0))
-               (uri (match-string 0))
-               (node (treesit-node-at uri-start 'markdown-inline))
-               (parent (and node (treesit-node-parent node)))
-               (parent-type (and parent (treesit-node-type parent))))
-          (unless (or (member parent-type
-                              '("inline_link" "full_reference_link"
-                                "collapsed_reference_link" "shortcut_link"
-                                "image" "uri_autolink" "email_autolink"
-                                "link_destination"))
-                      (member (and node (treesit-node-type node))
-                              '("uri_autolink" "email_autolink"
-                                "link_destination" "code_span"
-                                "code_fence_content" "info_string"))
-                      (get-text-property uri-start 'button))
-            (markdown-ts--make-link-button
-             uri-start uri-end
-             (if (eq re markdown-ts--bare-url-regexp)
-                 uri
-               (concat "mailto:" uri)))))))))
+  (keymap-set markdown-ts-view-mode-map "e" #'my/markdown-edit))
 
 (use-package uniquify
   :custom
@@ -792,7 +754,6 @@ Skip matches already inside tree-sitter link or autolink nodes."
   (super-save-idle-duration 1)
   (save-silently t)
   :config
-  (add-to-list 'super-save-triggers 'switch-window)
   (super-save-mode 1))
 
 ;; *scratch* を remember-notes のファイル (no-littering で var/remember/data)
@@ -1230,8 +1191,8 @@ Skip matches already inside tree-sitter link or autolink nodes."
                  (window-width . 40)
                  (preserve-size . (t . nil))
                  (window-parameters . ((no-delete-other-windows . t)))))
-:custom (ndl-note-tag-list-select-window nil)
-  )
+  :custom
+  (ndl-note-tag-list-select-window nil))
 
 (use-package year-convert
   :ensure (year-convert
@@ -1269,17 +1230,22 @@ Skip matches already inside tree-sitter link or autolink nodes."
   (post-hatena-hatena-id "cocolog-nifty")
   (post-hatena-blog-id "cocolog-nifty.hatenablog.com"))
 
-  (elpaca (ndl-search
-           :url "https://github.com/ichibeikatura/ndl-search")
-    (autoload 'ndl-search "ndl-search" nil t))
+(elpaca (ndl-search
+         :url "https://github.com/ichibeikatura/ndl-search")
+  (autoload 'ndl-search "ndl-search" nil t))
 
 (defun my/epub-convert ()
   (interactive)
   (when (buffer-modified-p) (save-buffer))
   (let ((script-path (expand-file-name "~/Documents/github/convert_epub/convert_epub.py")))
     (message "Generating EPUB...")
-    (shell-command-on-region (point-min) (point-max) (concat "python3 " script-path))
-    (message "EPUB generation sent.")))
+    ;; 出力 (stderr 込み) は *Shell Command Output* に出る。失敗時に
+    ;; 成功メッセージで上書きしないよう終了コードを見る。
+    (let ((status (shell-command-on-region
+                   (point-min) (point-max)
+                   (concat "python3 " (shell-quote-argument script-path)))))
+      (unless (eql status 0)
+        (message "EPUB generation failed (exit %s)" status)))))
 
 (defun my/insert-diary-entry ()
   (interactive)

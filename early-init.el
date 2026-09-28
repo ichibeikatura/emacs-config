@@ -64,7 +64,7 @@
 (setq inhibit-default-init t)
 (setq initial-scratch-message nil)
 (setq initial-major-mode 'fundamental-mode)
-(setq inhibit-startup-echo-area-message "mck") ;;"your-login-name"
+;; inhibit-startup-echo-area-message は init.el に置く（ここでは効かない）
 
 
 ;; 基本フレーム設定
