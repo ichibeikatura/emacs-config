@@ -795,6 +795,14 @@ Skip matches already inside tree-sitter link or autolink nodes."
   (add-to-list 'super-save-triggers 'switch-window)
   (super-save-mode 1))
 
+;; *scratch* を remember-notes のファイル (no-littering で var/remember/data)
+;; に置き換えて、中身をセッションをまたいで残す。保存は super-save 任せ。
+(use-package remember
+  :ensure nil
+  :custom
+  (remember-notes-buffer-name "*scratch*")
+  (initial-buffer-choice #'remember-notes))
+
 ;;; So Long
 ;(use-package so-long
 ;  :init
