@@ -1146,15 +1146,19 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
       (set-face-attribute f nil :box nil)))
   (add-hook 'enable-theme-functions #'my/kill-mode-line-box)
   (my/kill-mode-line-box)
+  ;; def-modeline には文字列とセグメント名しか書けないので、アイコンは
+  ;; セグメント側で付ける。doom-modeline-icon なら端末では ✎/➡ に落ちる。
   (doom-modeline-def-segment my-buffer-size
     "Display current buffer size"
-    (format "%s" (buffer-size)))
+    (concat (doom-modeline-icon 'octicon "nf-oct-pencil" "✎" "")
+            " " (format "%s" (buffer-size))))
   (doom-modeline-def-segment my-line-position
     "現在行/全行"
-    (format "%d/%d" (line-number-at-pos) (line-number-at-pos (point-max))))
+    (concat " " (doom-modeline-icon 'mdicon "nf-md-arrow_right_bold" "➡" "")
+            " " (format "%d/%d" (line-number-at-pos) (line-number-at-pos (point-max)))))
   (doom-modeline-def-modeline 'main
     '(buffer-encoding bar workspace-name buffer-info " ¦¦" vcs)
-    '(misc-info " ¦" "✎ " my-buffer-size " ➡ " my-line-position "  |  "  major-mode))
+    '(misc-info " ¦" my-buffer-size my-line-position "  |  "  major-mode))
   ;; *Ilist*（幅 40 桁のサイドウィンドウ）用の最小構成
   (doom-modeline-def-modeline 'my-ilist
     '(bar buffer-info)
