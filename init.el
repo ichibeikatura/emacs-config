@@ -1150,7 +1150,7 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   ;; セグメント側で付ける。doom-modeline-icon なら端末では ✎/➡ に落ちる。
   (doom-modeline-def-segment my-buffer-size
     "Display current buffer size"
-    (concat (doom-modeline-icon 'octicon "nf-oct-pencil" "✎" "")
+    (concat (doom-modeline-icon 'mdicon "nf-md-pencil_circle_outline" "✎" "")
             " " (format "%s" (buffer-size))))
   (doom-modeline-def-segment my-line-position
     "現在行/全行"
