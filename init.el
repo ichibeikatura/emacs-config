@@ -1216,7 +1216,10 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   :ensure (zellij-send
            :url "https://github.com/ichibeikatura/zellij-send.el")
   :defer t
-  :commands (zellij-send))
+  :commands (zellij-send)
+  :custom
+  ;; 新規の Claude Code セッションを Remote Control 付きで起動（スマホから操作）
+  (zellij-send-remote-control t))
 
 ;; セッション一覧ダッシュボード。zellij-send.el と同じリポジトリに同梱されて
 ;; いるので :ensure nil（elpaca がリポジトリごと load-path に入れている）。
