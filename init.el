@@ -1219,7 +1219,10 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   :commands (zellij-send)
   :custom
   ;; 新規の Claude Code セッションを Remote Control 付きで起動（スマホから操作）
-  (zellij-send-remote-control t))
+  (zellij-send-remote-control t)
+  ;; 新規セッションを 500 行にする。会話全体が黒板に映り、過去の発言を
+  ;; ターミナルの文字を縮めずに読める（80 行と比べて重さはほぼ同じ。実測済み）
+  (zellij-send-session-size '(320 . 500)))
 
 ;; セッション一覧ダッシュボード。zellij-send.el と同じリポジトリに同梱されて
 ;; いるので :ensure nil（elpaca がリポジトリごと load-path に入れている）。
