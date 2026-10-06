@@ -467,41 +467,38 @@
   (nerd-icons-completion-mode 1))
 
 ;;; テーマ
-;; Emacs 同梱の modus-themes（5.3.0）を使う。既定は modus-operandi-tinted。
-;; etc/themes は load-path に無く (require 'modus-themes) が通らないので、
-;; :no-require t で use-package の require を抑止し、load-theme 側で読ませる
-;; （load-theme は custom-theme-load-path を load-path に足してテーマを読む）。
-(use-package modus-themes
-  :ensure nil
-  :no-require t
+;; ef-themes を使う。既定は ef-kassio。ef-themes 2.0 以降は modus-themes の
+;; 派生テーマで、見出しなどの設定は modus-themes-* のユーザーオプションで行う。
+;; ef-themes は (require 'modus-themes) するが、Emacs 同梱の modus-themes は
+;; etc/themes にあって load-path に無く、package--builtin-versions にも載らない。
+;; そのため elpaca が依存として GNU ELPA の modus-themes も入れる。
+(use-package ef-themes
+  :ensure t
   :demand t
   :bind
-  (("C-c C-r" . modus-themes-toggle)
-  ("C-c C-t" . modus-themes-select))
+  ;; consult-theme は候補を移動するたびにテーマを当ててプレビューし、
+  ;; C-g で元のテーマに戻す。ef-themes-select にはプレビューが無い。
+  (("C-c C-r" . ef-themes-toggle)
+  ("C-c C-t" . consult-theme))
   :custom
+  ;; C-c C-r で往復する2つ。
+  (modus-themes-to-toggle '(ef-kassio ef-owl))
+  ;; consult-theme の候補を ef だけに絞る（modus や同梱テーマは M-x load-theme で）。
+  (consult-themes '("\\`ef-"))
   ;; 見出しのサイズ差。modus-themes-heading-N フェイスに効き、markdown-ts-mode の
   ;; markdown-ts-heading-N はこれを :inherit しているので Markdown にもそのまま乗る。
   ;; （org は未使用なので実質 Markdown 専用の設定になっている）
+  ;; 見出しの色は ef の既定（テーマごとの rainbow-N）に任せる。
   (modus-themes-headings
    '((1 . (1.5))
      (2 . (1.3))
      (3 . (1.15))
      (4 . (1.05))
      (t . (1.0))))
-  ;; 見出しのレベル別の色。modus 既定は fg-heading-1 が fg-main（本文と同じ黒）で
-  ;; H1 が本文に埋もれるため、レベルごとに色相を割り当てて階層を判別できるようにする。
-  ;; 値は色コードではなくパレットの意味名なので、ライト/ダークの切り替えに自動追従する。
-  (modus-themes-common-palette-overrides
-   '((fg-heading-1 blue-warmer)
-     (fg-heading-2 green-cooler)
-     (fg-heading-3 magenta-cooler)
-     (fg-heading-4 yellow-warmer)
-     (fg-heading-5 cyan-cooler)
-     (fg-heading-6 red-faint)))
   :config
   ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
   ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
-  (load-theme 'modus-operandi-tinted t))
+  (load-theme 'ef-kassio t))
 
 
 ;;; Which Key (Emacs 30+ built-in)
