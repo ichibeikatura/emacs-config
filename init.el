@@ -916,13 +916,29 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   :ensure t
   :defer t
   :custom-face
-  ;; 既定の前景色 White は淡いピンク地だと読めないので、文字色は通常のままにする。
-  (bm-face ((t (:background "#fdcbe2" :extend t))))
+  ;; 既定の前景色 White/Black は淡い地だと読めないので、文字色は通常のままにする。
+  ;; 背景色は下の my/bm-sync-face-color がテーマに合わせて付ける。
+  (bm-face ((t (:extend t))))
   :bind
   (("C-M-m" . bm-toggle)
    ("C-M-p" . bm-previous)
    ("C-M-n" . bm-next)
-   ("C-M-a" . bm-show)))
+   ("C-M-a" . bm-show))
+  :config
+  (defun my/bm-sync-face-color (&rest _)
+    "`bm-face' の背景を今のテーマの淡いピンクにする。
+ef テーマならその配色の bg-magenta-subtle を使い、ダークテーマでも文字が
+読めるようにする。ef 以外のテーマでは背景の明暗で固定色を選ぶ。
+`enable-theme-functions' から呼ぶ。引数はフックから渡されるテーマ名で、参照しない。"
+    (let ((rgb (color-name-to-rgb (face-background 'default nil t))))
+      (set-face-attribute
+       'bm-face nil
+       :background (cond ((memq (car custom-enabled-themes) ef-themes-items)
+                          (modus-themes-get-color-value 'bg-magenta-subtle))
+                         ((and rgb (color-dark-p rgb)) "#5a2e44")
+                         (t "#fdcbe2")))))
+  (my/bm-sync-face-color)
+  (add-hook 'enable-theme-functions #'my/bm-sync-face-color))
 
 ;;; Magit
 (use-package magit
