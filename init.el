@@ -915,6 +915,9 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
 (use-package bm
   :ensure t
   :defer t
+  :custom-face
+  ;; 既定の前景色 White は淡いピンク地だと読めないので、文字色は通常のままにする。
+  (bm-face ((t (:background "#fdcbe2" :extend t))))
   :bind
   (("C-M-m" . bm-toggle)
    ("C-M-p" . bm-previous)
