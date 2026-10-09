@@ -424,7 +424,10 @@
   (setq completion-category-overrides
 	'((file (styles basic partial-completion orderless))))
   (keymap-set vertico-map "RET" #'vertico-directory-enter)
-  (keymap-set vertico-map "DEL" #'vertico-directory-delete-char))
+  (keymap-set vertico-map "DEL" #'vertico-directory-delete-char)
+  ;; C-' (consult-buffer) をもう一度押したら閉じる。グローバルのままだと
+  ;; enable-recursive-minibuffers t により consult-buffer が入れ子で開く
+  (keymap-set vertico-map "C-'" #'abort-minibuffers))
 
 (use-package orderless
   :ensure t
