@@ -1231,6 +1231,15 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
   :defer t
   :bind ("C-M-=" . year-convert-at-point))
 
+;; Emacs のサーバ。zellij-send の Claude Code フック（Stop・状態フック）は
+;; emacsclient で Emacs に知らせるので、起動時に立てておく（立っていなければ
+;; フックが届かず、ダッシュボードの状態が画面だけからの推測になる）。
+(use-package server
+  :ensure nil
+  :config
+  (unless (server-running-p)
+    (server-start)))
+
 (use-package zellij-send
   :ensure (zellij-send
            :url "https://github.com/ichibeikatura/zellij-send.el")
