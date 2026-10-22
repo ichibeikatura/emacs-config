@@ -351,11 +351,6 @@
     (my-apply-font-config)
     (my--apply-font-now)))
 
-(defun my/resize-font (delta)
-  (setq my-current-font-size (max 8 (+ my-current-font-size delta)))
-  (my-apply-font-config)
-  (my--apply-font-now))
-
 (my-apply-font-config)
 (my--apply-font-now)
 
