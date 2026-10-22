@@ -317,7 +317,8 @@
 (advice-add 'basic-save-buffer :around #'my/save-buffer-keep-mark)
 
 ;;;フォント設定
-(defvar my-font-alist '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF")))
+;; SHG30 は 1998 年の「ＳＨ Ｇ30-M」(~/Library/Fonts/SH G30.ttc)。名前表が Shift_JIS のため macOS では化けた名前で見える
+(defvar my-font-alist '(("Mplus" . "Mplus 1 code") ("PlemolJP" . "PlemolJP Console NF") ("SHG30" . "ÇrÇg Çf30-M")))
 (defvar my-current-font-name "Mplus 1 code")
 (defvar my-current-font-size 14)
 
