@@ -1214,6 +1214,14 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
              proofreader-apply
              proofreader-open-json))
 
+(use-package nanishiteta
+  :ensure (nanishiteta
+           :url "https://github.com/ichibeikatura/nanishiteta.el")
+  :demand t
+  :commands nanishiteta
+  :config
+  (nanishiteta-mode 1))
+
 (use-package ndl-note-tag
   :ensure (ndl-note-tag
            :url "https://github.com/ichibeikatura/ndl-note-tag")
