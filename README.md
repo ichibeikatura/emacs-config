@@ -4,7 +4,7 @@ Elpaca + use-package 構成の Emacs 設定。日本語執筆向け（SKK, Dvora
 
 ## 動作環境
 
-- Emacs 29+（Native Compilation 対応）
+- Emacs 32（開発版、Native Compilation と tree-sitter 対応）。同梱の markdown-ts-mode や User Lisp Directory など 31〜32 の機能を使っている
 - macOS（Homebrew 環境）
 - US 配列
 
@@ -19,7 +19,7 @@ Elpaca + use-package 構成の Emacs 設定。日本語執筆向け（SKK, Dvora
 - **DDSKK** + **yaskkserv2**による日本語入力
 - **skk-lookup** による EPWING 辞書連携（広辞苑、大辞林、日本史辞典など）[Lookup 1.4+media](http://ikazuhiro.s206.xrea.com/staticpages/index.php/lookup)対応済み。
 
-skk-lookup.el と skk-bayesian.el を使いたい場合は site-lisp に、 "bskk" はパスの通った場所("~/bin" 等)に入れておく。
+skk-lookup.el と skk-bayesian.el を使いたい場合は user-lisp に、 "bskk" はパスの通った場所("~/bin" 等)に入れておく。
 
 ### キーボード配列
 
@@ -42,7 +42,7 @@ brew install ripgrep fd coreutils pngpaste
 ### フォント
 
 以下のいずれかをインストール：
-- [M+ 1mn](https://github.com/coz-m/MPLUS_FONTS)
+- [M PLUS 1 Code](https://github.com/coz-m/MPLUS_FONTS)
 - [PlemolJP](https://github.com/yuru7/PlemolJP)
 
 ### SKK 辞書サーバー

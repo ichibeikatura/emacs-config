@@ -828,7 +828,16 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   :init
   (run-with-idle-timer 1 nil #'recentf-mode)
   :config
-  (run-with-idle-timer 600 t #'recentf-cleanup))
+  ;; recentf が一覧を書き出すのは Emacs の終了時だけ。何日も起動したままだと
+  ;; クラッシュや強制終了でその間の履歴を丸ごと失うので、掃除のついでに保存する。
+  ;; recentf-show-messages を nil にして、保存のたびの "Wrote ..." を出さない
+  ;; （掃除の "Cleaning up..." は無条件に出るのでそのまま）。
+  (defun my/recentf-cleanup-and-save ()
+    "recentf の一覧を掃除して、ファイルに書き出す。"
+    (let ((recentf-show-messages nil))
+      (recentf-cleanup)
+      (recentf-save-list)))
+  (run-with-idle-timer 600 t #'my/recentf-cleanup-and-save))
 
 (use-package recentf-ext
   :ensure t
@@ -1208,6 +1217,10 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
   :ensure (proofreader
            :url "https://github.com/ichibeikatura/proofreader.el")
   :defer t
+  :custom
+  ;; proofreader-select-model の「既定として保存」は Custom 経由で etc/custom.el に
+  ;; 書くが、custom.el は読み込まない方針なので再起動で忘れる。既定はここで決める。
+  (proofreader-model "Gemini 3.8 Flash (Medium)")
   :commands (proofreader-send-buffer
              proofreader-send-region
              proofreader-apply-interactive
