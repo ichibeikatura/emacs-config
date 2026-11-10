@@ -1218,9 +1218,11 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
            :url "https://github.com/ichibeikatura/proofreader.el")
   :defer t
   :custom
-  ;; proofreader-select-model の「既定として保存」は Custom 経由で etc/custom.el に
-  ;; 書くが、custom.el は読み込まない方針なので再起動で忘れる。既定はここで決める。
-  (proofreader-model "Gemini 3.8 Flash (Medium)")
+  ;; proofreader-select-model が選んだモデルを保存するファイル。既定は
+  ;; ~/.emacs.d 直下なので var/ へ。proofreader-model はここで設定しない
+  ;; （設定すると保存した選択より優先されてしまう）。
+  (proofreader-state-file
+   (no-littering-expand-var-file-name "proofreader/state.eld"))
   :commands (proofreader-send-buffer
              proofreader-send-region
              proofreader-apply-interactive
