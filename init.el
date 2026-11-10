@@ -1232,6 +1232,12 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
            :url "https://github.com/ichibeikatura/nanishiteta.el")
   :demand t
   :commands nanishiteta
+  :custom
+  ;; 既定は ~/.emacs.d 直下。no-littering は対応していないので自分で var/ へ寄せる
+  (nanishiteta-log-file
+   (no-littering-expand-var-file-name "nanishiteta/nanishiteta.log"))
+  (nanishiteta-exclude-file
+   (no-littering-expand-var-file-name "nanishiteta/exclude"))
   :config
   (nanishiteta-mode 1))
 
@@ -1275,6 +1281,9 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
   :custom
   ;; 新規の Claude Code セッションを Remote Control 付きで起動（スマホから操作）
   (zellij-send-remote-control t)
+  ;; スラッシュコマンド一覧のキャッシュ。既定は ~/.emacs.d/zellij-send/ なので var/ へ
+  (zellij-send-slash-cache-directory
+   (no-littering-expand-var-file-name "zellij-send/slash-commands/"))
   ;; 新規セッションを 500 行にする。会話全体が黒板に映り、過去の発言を
   ;; ターミナルの文字を縮めずに読める（80 行と比べて重さはほぼ同じ。実測済み）
   (zellij-send-session-size '(320 . 500)))

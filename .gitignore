@@ -20,9 +20,5 @@ etc/
 # 個人用
 user-lisp/
 local/
-# パッケージが ~/.emacs.d 直下に書く記録・キャッシュ
-# （nanishiteta.log には開いたファイルのパスが載るので公開しない）
-/nanishiteta.log
-/nanishiteta-exclude
-/zellij-send/
+# emacs -Q で起動したときにできる
 /auto-save-list/
