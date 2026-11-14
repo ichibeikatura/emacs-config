@@ -1100,6 +1100,10 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
   (require 'skk-lookup)
   (setq skk-search-prog-list
         '((skk-search-jisyo-file skk-jisyo 0 t)
+          ;; 送り位置の補正辞書。AkaruI のように最後の仮名で Shift を押しても
+          ;; 本則の送り仮名 (明るい) が先に出るよう、サーバより前で引く。
+          (skk-search-jisyo-file
+           (expand-file-name "SKK-JISYO.okuri-hosei" skk-user-directory) 0 t)
           (skk-search-kakutei-jisyo-file skk-kakutei-jisyo 10000 t)
           (skk-search-jisyo-file skk-initial-search-jisyo 10000 t)
           (skk-search-server skk-aux-large-jisyo 10000)
