@@ -1108,7 +1108,39 @@ ef テーマならその配色の bg-magenta-subtle を使い、ダークテー�
           (skk-search-jisyo-file skk-initial-search-jisyo 10000 t)
           (skk-search-server skk-aux-large-jisyo 10000)
 	  (skk-lookup-search)
-          )))
+          ))
+
+  ;; 送りすぎの補正。OkoNau と打つと「おこn /行/」が当たって「行なう」に
+  ;; なる。漢字の読みに含まれる仮名まで送ってしまった形は辞書では直せない
+  ;; ので、確定のときに余分な送り仮名を落として本則の「行う」にする。
+  ;; 各要素は (見出し 落とす送り仮名 漢字)。常用漢字表の訓と SKK-JISYO.L の
+  ;; 見出しを突き合わせて拾った。送り仮名が違えば触らない (ふk+け の
+  ;; 「深ける」など)。「侘び寂び」と書けるよう さb/寂 は入れていない。
+  (defvar my/skk-okuri-sugi-alist
+    '(("おこn" "な" "行") ("あらw" "わ" "表") ("あらw" "わ" "現")
+      ("ことw" "わ" "断") ("みじk" "か" "短") ("うしn" "な" "失")
+      ("おとz" "ず" "訪") ("ののs" "し" "罵") ("のg" "が" "逃")
+      ("よそo" "お" "装") ("ほm" "ま" "誉") ("ふk" "か" "深")
+      ("はy" "や" "早") ("ともn" "な" "伴") ("つつs" "し" "慎")
+      ("つつs" "し" "謹") ("たまw" "わ" "賜") ("きたn" "な" "汚")
+      ("かたm" "む" "傾") ("かm" "も" "醸") ("おちi" "い" "陥")
+      ("おさn" "な" "幼") ("えr" "ら" "選") ("あつk" "か" "扱")
+      ("あたr" "ら" "新") ("あw" "わ" "併"))
+    "送りすぎの形を本則に直すための (見出し 送り仮名 漢字) のリスト。")
+
+  (define-advice skk-kakutei (:around (fn &rest args) my-okuri-sugi)
+    (let* ((okuri (and (eq skk-henkan-mode 'active) skk-henkan-okurigana))
+           (word (and okuri (skk-get-current-candidate)))
+           (hit (and word
+                     (member (list skk-henkan-key okuri
+                                   (car (split-string word ";")))
+                             my/skk-okuri-sugi-alist))))
+      (prog1 (apply fn args)
+        (when (and hit
+                   (>= (- (point) (length okuri)) (point-min))
+                   (string= okuri (buffer-substring-no-properties
+                                   (- (point) (length okuri)) (point))))
+          (delete-char (- (length okuri))))))))
 
 (use-package ddskk-posframe
   :ensure t
