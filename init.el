@@ -1171,8 +1171,8 @@ ef・au など modus 派生のテーマならその配色の bg-magenta-subtle �
 	  (skk-lookup-search)
           ))
 
-  ;; 類語変換: ▽あか C-1 SPC で岩波日本語表現辞典の類語グループを候補に出す。
-  ;; 送りありは ▽あか C-1 I のように送りの大文字に C-1 を付ける。
+  ;; 類語: 通常の候補が尽きたあとに、岩波日本語表現辞典の類語グループの語を
+  ;; 続けて出す (skk-search-prog-list の最後に足す。学習はしない)。
   ;; ~/Documents/github/skk-ruigo で make install すると、辞書が
   ;; ~/.skk.d/SKK-JISYO.ruigo に、skk-ruigo.el が user-lisp/ に入る。
   (when (require 'skk-ruigo nil t)
