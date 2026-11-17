@@ -481,8 +481,9 @@
         (cl-call-next-method)))))
 
 ;;; テーマ
-;; ef-themes を使う。既定は ef-kassio。ef-themes 2.0 以降は modus-themes の
-;; 派生テーマで、見出しなどの設定は modus-themes-* のユーザーオプションで行う。
+;; ef-themes を使う（既定のテーマは下の au-themes で当てる）。
+;; ef-themes 2.0 以降は modus-themes の派生テーマで、見出しなどの設定は
+;; modus-themes-* のユーザーオプションで行う。
 ;; ef-themes は (require 'modus-themes) するが、Emacs 同梱の modus-themes は
 ;; etc/themes にあって load-path に無く、package--builtin-versions にも載らない。
 ;; そのため elpaca が依存として GNU ELPA の modus-themes も入れる。
@@ -490,15 +491,11 @@
   :ensure t
   :demand t
   :bind
-  ;; consult-theme は候補を移動するたびにテーマを当ててプレビューし、
-  ;; C-g で元のテーマに戻す。ef-themes-select にはプレビューが無い。
-  (("C-c C-r" . ef-themes-toggle)
-  ("C-c C-t" . consult-theme))
+  ;; テーマを選ぶのは C-c C-t の `my/theme-select'（au-themes の後に定義）。
+  ("C-c C-r" . ef-themes-toggle)
   :custom
   ;; C-c C-r で往復する2つ。
   (modus-themes-to-toggle '(ef-kassio ef-owl))
-  ;; consult-theme の候補を ef と au だけに絞る（modus や同梱テーマは M-x load-theme で）。
-  (consult-themes '("\\`ef-" "\\`au-"))
   ;; 見出しのサイズ差。modus-themes-heading-N フェイスに効き、markdown-ts-mode の
   ;; markdown-ts-heading-N はこれを :inherit しているので Markdown にもそのまま乗る。
   ;; （org は未使用なので実質 Markdown 専用の設定になっている）
@@ -508,20 +505,67 @@
      (2 . (1.3))
      (3 . (1.15))
      (4 . (1.05))
-     (t . (1.0))))
-  :config
-  ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
-  ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
-  (load-theme 'ef-kassio t))
+     (t . (1.0)))))
 
 ;; au-themes: 低グレアの配色集（au-<系統>-<day|night>）。MELPA に無いので GitHub から。
 ;; ef と同じく modus-themes の派生で、autoload が custom-theme-load-path への追加と
-;; modus-themes への登録をするので、require しなくても consult-theme の候補に出て、
+;; modus-themes への登録をするので、require しなくても `my/theme-select' の候補に出て、
 ;; modus-themes-to-toggle にも書ける。見出しも modus-themes-headings がそのまま効く。
 (use-package au-themes
   :ensure (au-themes
            :url "https://github.com/szymonwilczek/au-themes")
-  :defer t)
+  :demand t
+  :config
+  ;; 既定のテーマ。au の autoload（テーマの在り処の登録）が読まれた後でないと
+  ;; 見つからないので、ef-themes ではなくここで当てる。
+  ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
+  ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
+  (load-theme 'au-whispergrove-day t))
+
+;; modus・ef・au のテーマをまとめて選ぶ。ef-themes-select などの *-select は
+;; 自分の系統しか出さずプレビューも無い。consult-theme はプレビューできるが
+;; 明暗で分けない。ここでは modus に登録済みのテーマ全部を Light / Dark に分けて
+;; 並べ、候補を移動するたびに当てて、C-g で元に戻す（当て外しは consult-theme 任せ）。
+;; 説明は marginalia が theme カテゴリに付ける。
+(defun my/theme-select ()
+  "modus・ef・au のテーマを明暗で分けた一覧から、プレビューしながら選ぶ。"
+  (interactive)
+  (require 'consult)
+  (let* ((saved (car custom-enabled-themes))
+         (background (lambda (name)
+                       (plist-get (get (intern name) 'theme-properties)
+                                  :background-mode)))
+         ;; 名前順に並べてから明るいものを前へ（sort は安定なので名前順は保たれる）。
+         (themes (mapcar #'symbol-name
+                         (sort (copy-sequence (modus-themes-get-all-known-themes))
+                               #'string<)))
+         (themes (append (seq-filter (lambda (n) (eq (funcall background n) 'light)) themes)
+                         (seq-remove (lambda (n) (eq (funcall background n) 'light)) themes))))
+    (consult--read
+     themes
+     :prompt "Theme: "
+     :require-match t
+     :category 'theme
+     :sort nil
+     :history 'consult--theme-history
+     :default (and saved (symbol-name saved))
+     :group (lambda (cand transform)
+              (if transform
+                  cand
+                (capitalize (format "%s" (funcall background cand)))))
+     :lookup (lambda (selected &rest _)
+               (or (and selected (intern-soft (car (member selected themes))))
+                   saved))
+     ;; consult-theme の :state と同じ。return は確定と C-g の両方で呼ばれ、
+     ;; C-g のときは theme が nil なので元のテーマに戻す。
+     :state (lambda (action theme)
+              (with-selected-window (or (active-minibuffer-window)
+                                        (selected-window))
+                (pcase action
+                  ('return (consult-theme (or theme saved)))
+                  ((and 'preview (guard theme)) (consult-theme theme))))))))
+
+(keymap-global-set "C-c C-t" #'my/theme-select)
 
 
 ;;; Which Key (Emacs 30+ built-in)
