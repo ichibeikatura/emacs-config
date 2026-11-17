@@ -1173,8 +1173,9 @@ ef・au など modus 派生のテーマならその配色の bg-magenta-subtle �
 
   ;; 類語変換: ▽あか C-1 SPC で岩波日本語表現辞典の類語グループを候補に出す。
   ;; 送りありは ▽あか C-1 I のように送りの大文字に C-1 を付ける。
-  ;; 辞書は ~/Documents/github/skk-ruigo で make して作る。
-  (when (load (expand-file-name "~/Documents/github/skk-ruigo/skk-ruigo") t t)
+  ;; ~/Documents/github/skk-ruigo で make install すると、辞書が
+  ;; ~/.skk.d/SKK-JISYO.ruigo に、skk-ruigo.el が user-lisp/ に入る。
+  (when (require 'skk-ruigo nil t)
     (skk-ruigo-setup))
 
   ;; 送りすぎの補正。OkoNau と打つと「おこn /行/」が当たって「行なう」に
