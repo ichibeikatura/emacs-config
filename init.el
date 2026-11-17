@@ -113,6 +113,11 @@
   (setq split-width-threshold nil)
   (setq auto-window-vscroll nil)
   (setq fast-but-imprecise-scrolling t)
+  ;; 字下げにタブ文字を使わない。text-mode 派生の TAB は indent-relative で、
+  ;; 既定 (t) のままだとタブ文字が入る。以前は nhg-minor-mode がバッファごとに
+  ;; nil にしていたが、0.2.0 でやめたのでここで既定にする。
+  ;; Makefile など自前で t にするモードには影響しない。
+  (setq-default indent-tabs-mode nil)
   ;; markdown-ts-mode-maybe はグラマ未導入なら text-mode に落ちる
   (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-ts-mode-maybe))
   (setq ffap-machine-p-known 'reject)
