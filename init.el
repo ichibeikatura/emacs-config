@@ -497,8 +497,8 @@
   :custom
   ;; C-c C-r で往復する2つ。
   (modus-themes-to-toggle '(ef-kassio ef-owl))
-  ;; consult-theme の候補を ef だけに絞る（modus や同梱テーマは M-x load-theme で）。
-  (consult-themes '("\\`ef-"))
+  ;; consult-theme の候補を ef と au だけに絞る（modus や同梱テーマは M-x load-theme で）。
+  (consult-themes '("\\`ef-" "\\`au-"))
   ;; 見出しのサイズ差。modus-themes-heading-N フェイスに効き、markdown-ts-mode の
   ;; markdown-ts-heading-N はこれを :inherit しているので Markdown にもそのまま乗る。
   ;; （org は未使用なので実質 Markdown 専用の設定になっている）
@@ -513,6 +513,15 @@
   ;; 第2引数 t (NO-CONFIRM) が無いと起動のたびに確認され、答えは custom-file に
   ;; 書かれる。custom.el は読み込まない方針なので毎回聞かれることになる。
   (load-theme 'ef-kassio t))
+
+;; au-themes: 低グレアの配色集（au-<系統>-<day|night>）。MELPA に無いので GitHub から。
+;; ef と同じく modus-themes の派生で、autoload が custom-theme-load-path への追加と
+;; modus-themes への登録をするので、require しなくても consult-theme の候補に出て、
+;; modus-themes-to-toggle にも書ける。見出しも modus-themes-headings がそのまま効く。
+(use-package au-themes
+  :ensure (au-themes
+           :url "https://github.com/szymonwilczek/au-themes")
+  :defer t)
 
 
 ;;; Which Key (Emacs 30+ built-in)
@@ -950,13 +959,16 @@ C-x C-f などがそこから始まってしまう。保存先は `buffer-file-n
   :config
   (defun my/bm-sync-face-color (&rest _)
     "`bm-face' の背景を今のテーマの淡いピンクにする。
-ef テーマならその配色の bg-magenta-subtle を使い、ダークテーマでも文字が
-読めるようにする。ef 以外のテーマでは背景の明暗で固定色を選ぶ。
+ef・au など modus 派生のテーマならその配色の bg-magenta-subtle を使い、
+ダークテーマでも文字が読めるようにする。それ以外のテーマでは背景の明暗で
+固定色を選ぶ。
 `enable-theme-functions' から呼ぶ。引数はフックから渡されるテーマ名で、参照しない。"
     (let ((rgb (color-name-to-rgb (face-background 'default nil t))))
       (set-face-attribute
        'bm-face nil
-       :background (cond ((memq (car custom-enabled-themes) ef-themes-items)
+       :background (cond ((and custom-enabled-themes
+                               (eq (car custom-enabled-themes)
+                                   (modus-themes-get-current-theme)))
                           (modus-themes-get-color-value 'bg-magenta-subtle))
                          ((and rgb (color-dark-p rgb)) "#5a2e44")
                          (t "#fdcbe2")))))
