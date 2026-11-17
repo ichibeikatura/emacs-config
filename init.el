@@ -1171,6 +1171,12 @@ ef・au など modus 派生のテーマならその配色の bg-magenta-subtle �
 	  (skk-lookup-search)
           ))
 
+  ;; 類語変換: ▽あか C-1 SPC で岩波日本語表現辞典の類語グループを候補に出す。
+  ;; 送りありは ▽あか C-1 I のように送りの大文字に C-1 を付ける。
+  ;; 辞書は ~/Documents/github/skk-ruigo で make して作る。
+  (when (load (expand-file-name "~/Documents/github/skk-ruigo/skk-ruigo") t t)
+    (skk-ruigo-setup))
+
   ;; 送りすぎの補正。OkoNau と打つと「おこn /行/」が当たって「行なう」に
   ;; なる。漢字の読みに含まれる仮名まで送ってしまった形は辞書では直せない
   ;; ので、確定のときに余分な送り仮名を落として本則の「行う」にする。
