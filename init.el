@@ -468,17 +468,7 @@
   :hook
   (marginalia-mode . nerd-icons-completion-marginalia-setup)
   :init
-  (nerd-icons-completion-mode 1)
-  :config
-  ;; consult-buffer を開いている間に候補のバッファが kill されると、アイコンを
-  ;; 付け直すときに "Selecting deleted buffer" で落ちる（get-buffer は kill 済みの
-  ;; バッファもそのまま返す）。上流で直ったら消す
-  ;; (rainstormstudio/nerd-icons-completion#34)
-  (cl-defmethod nerd-icons-completion-get-icon :around (cand (_cat (eql buffer)))
-    (let ((buf (get-buffer cand)))
-      (if (and buf (not (buffer-live-p buf)))
-          ""
-        (cl-call-next-method)))))
+  (nerd-icons-completion-mode 1))
 
 ;;; テーマ
 ;; ef-themes を使う（既定のテーマは下の au-themes で当てる）。
