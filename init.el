@@ -1418,6 +1418,18 @@ ef・au など modus 派生のテーマならその配色の bg-magenta-subtle �
   (post-hatena-hatena-id "cocolog-nifty")
   (post-hatena-blog-id "cocolog-nifty.hatenablog.com"))
 
+;; 本を書く作業台 shosei の Emacs 側のおまけ。M-x shosei-init で本のフォルダを
+;; 作って dired で開く。本体の Python スクリプト shosei は ~/.bin に置いてある
+;; （PATH 上にあることが前提）。
+(use-package shosei
+  :ensure (shosei
+           :url "https://github.com/ichibeikatura/shosei")
+  :defer t
+  :commands (shosei-init)
+  :custom
+  ;; 本のフォルダを聞くときの起点
+  (shosei-default-directory "~/Documents/"))
+
 (elpaca (ndl-search
          :url "https://github.com/ichibeikatura/ndl-search")
   (autoload 'ndl-search "ndl-search" nil t))
